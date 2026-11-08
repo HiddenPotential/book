@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Next Read: book recommendations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Patrick+Hand&family=Special+Elite&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="scrapbook.css" />
+</head>
+<body>
+  <!-- Top navigation: switches between the three pages of the site -->
+  <nav class="topnav">
+    <a href="#discover" class="brand" data-home>Next <em>Read</em></a>
+    <div class="nav-links">
+      <a href="#discover" data-nav="discover">Discover</a>
+      <a href="#timer" data-nav="timer">Reading timer <span id="nav-timer-dot" class="live-dot" hidden></span></a>
+      <a href="#log" data-nav="log">My books</a>
+    </div>
+  </nav>
+
+  <header class="hero" data-view="discover">
+    <p class="eyebrow">A little bookshop of ideas</p>
+    <h1><a href="#" data-home>Next <em>Read</em></a></h1>
+    <p class="tagline">Tell us the last book you loved. We'll find what to pick up next.</p>
+
+    <!-- Step 1: search for the book you read -->
+    <form id="search-form" class="search">
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="search-input" type="text" placeholder="Title or author, e.g. The Hunger Games" autocomplete="off" aria-label="Book you last read" required />
+      <button type="submit">Find books</button>
+    </form>
+
+    <section id="recent" class="recent" hidden>
+      <span>Recently read</span>
+      <div id="recent-list"></div>
+    </section>
+  </header>
+
+  <main>
+    <div data-view="discover">
+    <p id="status" class="status" aria-live="polite"></p>
+
+    <!-- Homepage: suggestions before you search -->
+    <div id="home">
+      <section id="for-you" class="home-section" hidden>
+        <div class="section-head">
+          <div>
+            <p class="kicker">Picked for you</p>
+            <h2 class="section-title">Because you read <em id="for-you-because"></em></h2>
+          </div>
+        </div>
+        <div id="for-you-shelf" class="shelf"></div>
+      </section>
+
+      <section class="home-section">
+        <div class="section-head">
+          <div>
+            <p class="kicker">What readers are opening</p>
+            <h2 class="section-title">Trending this week</h2>
+          </div>
+          <p class="hint">Read one of these? Tap it for books like it.</p>
+        </div>
+        <div id="trending-shelf" class="shelf"></div>
+      </section>
+
+      <section class="home-section">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Reader favorites</p>
+            <h2 class="section-title">Browse by genre</h2>
+          </div>
+        </div>
+        <div id="genre-chips" class="chips" role="toolbar" aria-label="Genres"></div>
+        <div id="genre-shelf" class="shelf"></div>
+      </section>
+    </div>
+
+    <!-- Step 2: pick the right book from the search results -->
+    <section id="matches" hidden>
+      <a href="#" class="back" data-home>&larr; Back to home</a>
+      <h2 class="section-title">Which one did you read?</h2>
+      <div id="match-list" class="grid"></div>
+    </section>
+
+    <!-- Step 3: recommendations -->
+    <section id="results" hidden>
+      <a href="#" class="back" data-home>&larr; Back to home</a>
+      <div id="chosen" class="chosen"></div>
+      <div class="results-head">
+        <h2 class="section-title">You might like</h2>
+        <label class="toggle">
+          <input id="same-author" type="checkbox" />
+          <span class="switch" aria-hidden="true"></span>
+          Include same author
+        </label>
+      </div>
+      <div id="rec-list" class="grid"></div>
+      <div class="more-wrap">
+        <button id="show-more" class="ghost-button" type="button" hidden>Show more books</button>
+      </div>
+
+      <section id="by-author" class="home-section" hidden>
+        <div class="section-head">
+          <div>
+            <p class="kicker">Same author</p>
+            <h2 class="section-title">More by <em id="by-author-name"></em></h2>
+          </div>
+        </div>
+        <div id="by-author-shelf" class="shelf"></div>
+      </section>
+    </section>
+    </div>
+
+    <!-- ========== Reading timer ========== -->
+    <section data-view="timer" class="page" hidden>
+      <div class="page-head">
+        <p class="kicker">Reading time</p>
+        <h2 class="page-title">Reading timer</h2>
+        <p class="page-sub">Press start when you open your book. Every session is saved to your log.</p>
+      </div>
+
+      <div class="timer-card">
+        <label class="field">
+          <span>What are you reading?</span>
+          <select id="timer-book"></select>
+        </label>
+
+        <div class="timer-ring">
+          <svg viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="ring-track" cx="110" cy="110" r="96" />
+            <circle id="ring-progress" class="ring-progress" cx="110" cy="110" r="96" />
+          </svg>
+          <div class="timer-center">
+            <div id="timer-clock" class="timer-clock">00:00</div>
+            <div id="timer-goal-text" class="timer-goal-text">Goal: 20 min</div>
+          </div>
+        </div>
+
+        <div class="timer-buttons">
+          <button id="timer-start" type="button" class="big-button">Start</button>
+          <button id="timer-finish" type="button" class="ghost-button" disabled>Finish &amp; save</button>
+          <button id="timer-reset" type="button" class="text-button" disabled>Reset</button>
+        </div>
+
+        <details class="manual-add">
+          <summary>Read without the timer? Add time</summary>
+          <form id="manual-form" class="manual-form">
+            <input id="manual-minutes" type="number" min="1" max="600" placeholder="Minutes" aria-label="Minutes read" required />
+            <button type="submit" class="pill-button">Add to log</button>
+          </form>
+          <p class="panel-note">It's saved for the book chosen above.</p>
+        </details>
+
+        <div class="goal-picker">
+          <span>Daily goal</span>
+          <div id="goal-chips" class="chips"></div>
+        </div>
+      </div>
+
+      <div class="stat-row" id="timer-stats"></div>
+
+      <h3 class="sub-title">Recent sessions</h3>
+      <ul id="session-list" class="session-list"></ul>
+    </section>
+
+    <!-- ========== Book log ========== -->
+    <section data-view="log" class="page" hidden>
+      <div class="page-head">
+        <p class="kicker">Your shelf</p>
+        <h2 class="page-title">My books</h2>
+        <p class="page-sub">Keep track of what you're reading and what you've finished.</p>
+      </div>
+
+      <div class="stat-row" id="log-stats"></div>
+
+      <div class="insights">
+        <section class="panel">
+          <div class="panel-head">
+            <h3 class="sub-title">Reading calendar</h3>
+            <div class="legend" aria-hidden="true">
+              <span>Less</span><i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i><span>More</span>
+            </div>
+          </div>
+          <div id="calendar" class="calendar" role="img"></div>
+          <p class="panel-note">Each square is a day. Darker squares mean more reading; a full square means you hit your daily goal.</p>
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <h3 class="sub-title">Badges</h3>
+            <span id="badge-count" class="panel-count"></span>
+          </div>
+          <div id="badges" class="badges"></div>
+        </section>
+      </div>
+
+      <form id="log-search-form" class="search search-small">
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="log-search-input" type="text" placeholder="Add a book to your log" autocomplete="off" aria-label="Add a book" required />
+        <button type="submit">Search</button>
+      </form>
+      <p id="log-status" class="status" aria-live="polite"></p>
+      <div id="log-search-results" class="add-results"></div>
+
+      <div class="log-tabs" role="tablist">
+        <button type="button" class="chip" data-filter="reading" aria-pressed="true">Reading now</button>
+        <button type="button" class="chip" data-filter="want" aria-pressed="false">Want to read</button>
+        <button type="button" class="chip" data-filter="finished" aria-pressed="false">Finished</button>
+        <button type="button" class="chip" data-filter="all" aria-pressed="false">All</button>
+      </div>
+      <div id="log-list" class="log-list"></div>
+
+      <div class="backup">
+        <p>Your books are saved only in this browser. Download a backup to keep them safe or move them to another device.</p>
+        <div class="backup-buttons">
+          <button id="export-btn" type="button" class="pill-button"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v12M7 11l5 5 5-5M4.5 20.5h15"/></svg>Download backup</button>
+          <label class="pill-button file-button"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 8.5l5-5 5 5M4.5 20.5h15"/></svg>Restore backup
+            <input id="import-file" type="file" accept="application/json,.json" />
+          </label>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <footer>
+    Book data from <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a>
+  </footer>
+
+  <script src="app.js"></script>
+  <script src="reading.js"></script>
+</body>
+</html>

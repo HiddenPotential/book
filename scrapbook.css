@@ -1,0 +1,397 @@
+/* ======================================================================
+   Scrapbook theme
+   Loaded after style.css. Paper, tape, polaroids, sticky notes and
+   handwriting. Delete the <link> to this file to go back to the plain look.
+   ====================================================================== */
+:root {
+  --paper: #efe4cf;           /* kraft-ish page */
+  --paper-2: #e4d5ba;
+  --card: #fffdf6;            /* notebook paper */
+  --ink: #2b2420;
+  --ink-soft: #5d5047;
+  --ink-faint: #94867a;
+  --accent: #c2462e;          /* red pen */
+  --accent-dark: #9c3420;
+  --tag: #fbe7a1;
+  --tag-ink: #5b4210;
+  --line: rgba(43, 36, 32, 0.16);
+  --rule: rgba(80, 130, 190, 0.22);     /* blue notebook lines */
+  --margin: rgba(214, 80, 70, 0.45);    /* red notebook margin */
+  --tape-1: rgba(244, 196, 120, 0.72);
+  --tape-2: rgba(160, 205, 200, 0.72);
+  --tape-3: rgba(236, 160, 170, 0.72);
+  --note-yellow: #fff1a8;
+  --note-pink: #ffd3d8;
+  --note-blue: #cfe7f5;
+  --note-green: #d6efc7;
+  --note-peach: #ffdcbf;
+  --shadow: 0 1px 1px rgba(60, 40, 20, 0.15), 2px 6px 12px -4px rgba(60, 40, 20, 0.35);
+  --shadow-lift: 0 2px 2px rgba(60, 40, 20, 0.15), 6px 18px 26px -10px rgba(60, 40, 20, 0.5);
+  --serif: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --sans: "Patrick Hand", "Comic Neue", "Chalkboard SE", system-ui, sans-serif;
+  --type: "Special Elite", "American Typewriter", "Courier New", monospace;
+  --wobbly: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --wobbly-2: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .15 0 0 0 .14 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #2a2520;
+    --paper-2: #3a332b;
+    --card: #3b352e;
+    --ink: #f4ead8;
+    --ink-soft: #d2c4b0;
+    --ink-faint: #a29380;
+    --accent: #f08a6a;
+    --accent-dark: #ffa587;
+    --tag: #5b4d22;
+    --tag-ink: #fbe7a1;
+    --line: rgba(244, 234, 216, 0.16);
+    --rule: rgba(140, 180, 230, 0.16);
+    --margin: rgba(240, 120, 100, 0.35);
+    --note-yellow: #5b5225;
+    --note-pink: #5b3238;
+    --note-blue: #2c4656;
+    --note-green: #34492b;
+    --note-peach: #5a3e2a;
+    --shadow: 0 1px 1px rgba(0,0,0,.4), 2px 6px 12px -4px rgba(0,0,0,.7);
+    --shadow-lift: 0 2px 2px rgba(0,0,0,.4), 6px 18px 26px -10px rgba(0,0,0,.85);
+  }
+}
+
+/* ---------- The page itself: kraft paper with grain and faint dot grid ---------- */
+body {
+  font-size: 1.08rem;
+  background:
+    var(--noise),
+    radial-gradient(circle, rgba(60, 40, 20, 0.09) 1px, transparent 1.4px) 0 0 / 22px 22px,
+    radial-gradient(900px 600px at 15% 0%, rgba(255, 255, 255, 0.35), transparent 70%),
+    var(--paper);
+}
+
+/* Shared pieces of "stuff stuck to the page" */
+.tape {
+  content: "";
+  position: absolute; z-index: 3;
+  width: 74px; height: 22px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.22) 0 4px, transparent 4px 9px),
+    var(--tape-1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  /* jagged torn ends */
+  clip-path: polygon(3% 0, 97% 4%, 100% 30%, 96% 55%, 100% 80%, 97% 100%, 2% 96%, 0 70%, 4% 45%, 0 18%);
+  pointer-events: none;
+}
+
+/* ---------- Navigation: a torn strip of notebook paper ---------- */
+.topnav {
+  background: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border-bottom: 0;
+  box-shadow: 0 4px 10px -6px rgba(60, 40, 20, 0.4);
+}
+.topnav::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: -9px; height: 10px;
+  background:
+    linear-gradient(135deg, var(--card) 33%, transparent 34%) 0 0 / 14px 10px,
+    linear-gradient(225deg, var(--card) 33%, transparent 34%) 0 0 / 14px 10px;
+  filter: drop-shadow(0 2px 1px rgba(60, 40, 20, 0.15));
+}
+.brand { font-size: 1.9rem; font-weight: 700; letter-spacing: 0; line-height: 1; }
+.brand em, h1 em, .section-head .section-title em { font-style: normal; font-weight: 700; }
+.nav-links a {
+  font-family: var(--sans); font-size: 1.05rem;
+  border-radius: var(--wobbly);
+  border: 2px solid transparent;
+}
+.nav-links a:hover { background: var(--paper-2); }
+.nav-links a.active {
+  background: var(--note-yellow); color: var(--ink);
+  border-color: var(--ink);
+  transform: rotate(-2deg);
+}
+
+/* ---------- Headings: handwriting, with a highlighter swipe ---------- */
+h1 { font-size: clamp(3.6rem, 10vw, 6.2rem); font-weight: 700; letter-spacing: 0; line-height: 0.95; }
+h1 em {
+  position: relative; display: inline-block; transform: rotate(-3deg);
+}
+/* doodled underline */
+h1 em::after {
+  content: "";
+  position: absolute; left: -4%; right: -6%; bottom: -0.08em; height: 0.28em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 20' preserveAspectRatio='none'%3E%3Cpath d='M3 12c40-9 90-10 130-6 22 2 45 4 64-1M10 17c55-6 110-6 170-3' fill='none' stroke='%23c2462e' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+.eyebrow, .kicker, .chosen .label {
+  font-family: var(--type); font-weight: 400;
+  letter-spacing: 0.06em; font-size: 0.82rem;
+}
+/* the little kicker looks like a label-maker strip */
+.kicker, .eyebrow {
+  display: inline-block;
+  padding: 3px 10px;
+  color: var(--paper); background: var(--ink);
+  transform: rotate(-1.5deg);
+  box-shadow: 1px 2px 0 rgba(0,0,0,.12);
+}
+.page-head .kicker { display: inline-block; }
+.tagline, .page-sub { font-size: 1.2rem; }
+
+.section-title, .page-title, .sub-title {
+  font-weight: 700; letter-spacing: 0;
+}
+.section-title { font-size: clamp(2rem, 4.4vw, 2.7rem); line-height: 1; }
+.page-title {
+  display: inline-block;
+  font-size: clamp(3rem, 7vw, 4.2rem);
+  background: linear-gradient(transparent 58%, color-mix(in srgb, var(--note-yellow) 90%, transparent) 58%, color-mix(in srgb, var(--note-yellow) 90%, transparent) 88%, transparent 88%);
+  padding: 0 10px;
+}
+.sub-title { font-size: 1.9rem; }
+.section-head { border-bottom: 2px dashed var(--line); }
+.hint { font-family: var(--serif); font-size: 1.25rem; font-style: normal; transform: rotate(-1deg); }
+
+/* ---------- Search: a strip of paper taped down ---------- */
+.search {
+  position: relative;
+  border: 2px solid var(--ink);
+  border-radius: var(--wobbly);
+  box-shadow: 4px 5px 0 rgba(43, 36, 32, 0.85);
+  transform: rotate(-0.6deg);
+}
+.search:focus-within { border-color: var(--ink); box-shadow: 4px 5px 0 var(--accent); }
+.search input { font-family: var(--sans); font-size: 1.15rem; }
+.search-icon { stroke: var(--ink-soft); }
+
+/* Buttons: hand-drawn outlines */
+.search button, .big-button {
+  border-radius: var(--wobbly-2);
+  border: 2px solid var(--ink);
+  font-family: var(--sans); font-weight: 400; font-size: 1.15rem;
+  box-shadow: 2px 3px 0 var(--ink);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.search button:hover, .big-button:hover { transform: translate(-1px, -1px) rotate(-1deg); box-shadow: 3px 4px 0 var(--ink); }
+.search button:active, .big-button:active { transform: translate(2px, 3px); box-shadow: 0 0 0 var(--ink); }
+.big-button.running { background: var(--note-blue); color: var(--ink); box-shadow: 2px 3px 0 var(--ink); }
+
+.chip, .pill-button, .ghost-button, .recent button {
+  font-family: var(--sans); font-weight: 400; font-size: 1rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--wobbly);
+  background: var(--card);
+  color: var(--ink);
+}
+.chip:nth-child(3n+1) { transform: rotate(-1.2deg); }
+.chip:nth-child(3n+2) { transform: rotate(0.8deg); }
+.chip:hover, .pill-button:hover:not(:disabled), .ghost-button:hover, .recent button:hover {
+  border-color: var(--ink); color: var(--ink); background: var(--note-yellow);
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--ink); color: #fff; }
+.ghost-button { box-shadow: 2px 3px 0 var(--ink); }
+.text-button { font-family: var(--sans); font-size: 1rem; text-decoration: underline wavy; text-underline-offset: 4px; }
+.recent button { font-size: 0.95rem; padding: 4px 12px; background: var(--note-pink); }
+.recent button:nth-child(even) { background: var(--note-blue); transform: rotate(1deg); }
+.recent button:nth-child(3n) { background: var(--note-green); transform: rotate(-1.5deg); }
+.recent > span { font-family: var(--serif); font-size: 1.3rem; color: var(--ink-soft); }
+
+/* ---------- Book covers become taped-in polaroids ---------- */
+.card { position: relative; }
+.card .cover, .chosen .cover, .log-item .cover {
+  padding: 7px 7px 24px;
+  background: #fffefa;
+  border-radius: 2px;
+  aspect-ratio: 2 / 3.35;
+  box-shadow: var(--shadow);
+  transform: rotate(var(--tilt, -1.5deg));
+}
+.card .cover img, .chosen .cover img, .log-item .cover img { border-radius: 1px; }
+.card .cover::after, .chosen .cover::after, .log-item .cover::after { display: none; }
+.card .no-cover, .chosen .no-cover, .log-item .no-cover { inset: 7px 7px 24px; }
+.no-cover .nc-title { font-size: 1.5rem; font-weight: 700; }
+.no-cover .nc-author { font-family: var(--type); letter-spacing: 0.02em; text-transform: none; }
+
+/* Tilt each polaroid a little differently */
+.card:nth-child(4n+1) { --tilt: -2deg;  --tape-tilt: -6deg; --tape: var(--tape-1); }
+.card:nth-child(4n+2) { --tilt: 1.6deg; --tape-tilt: 4deg;  --tape: var(--tape-2); }
+.card:nth-child(4n+3) { --tilt: -0.8deg; --tape-tilt: -2deg; --tape: var(--tape-3); }
+.card:nth-child(4n)   { --tilt: 2.2deg; --tape-tilt: 7deg;  --tape: var(--tape-1); }
+.log-item:nth-child(odd) { --tilt: -2deg; }
+.log-item:nth-child(even) { --tilt: 1.5deg; }
+
+/* Washi tape across the top of each polaroid */
+.card::before {
+  content: "";
+  position: absolute; z-index: 3;
+  top: -6px; left: 50%;
+  width: 70px; height: 20px;
+  margin-left: -35px;
+  transform: rotate(var(--tape-tilt, -4deg));
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 4px, transparent 4px 9px),
+    var(--tape, var(--tape-1));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  clip-path: polygon(3% 0, 97% 4%, 100% 30%, 96% 55%, 100% 80%, 97% 100%, 2% 96%, 0 70%, 4% 45%, 0 18%);
+  pointer-events: none;
+}
+.skeleton::before { display: none; }
+
+.card:hover .cover, .card:focus-visible .cover,
+.card:hover .card-link .cover {
+  transform: rotate(0deg) translateY(-6px) scale(1.03);
+  box-shadow: var(--shadow-lift);
+}
+.card .title { font-family: var(--serif); font-size: 1.45rem; font-weight: 700; line-height: 1.05; margin-top: 12px; }
+.card .meta { font-family: var(--sans); }
+.save-btn { top: 12px; right: 12px; }
+
+/* Subject tags: little label-maker / ticket stubs */
+.tag {
+  font-family: var(--type); font-size: 0.7rem;
+  border-radius: 2px;
+  padding: 3px 8px;
+  background: var(--tag); color: var(--tag-ink);
+  box-shadow: 1px 1px 0 rgba(0,0,0,.08);
+  -webkit-mask: radial-gradient(circle 3px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+                radial-gradient(circle 3px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+          mask: radial-gradient(circle 3px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+                radial-gradient(circle 3px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+}
+.tag:nth-child(even) { background: var(--note-blue); color: var(--ink); }
+
+/* ---------- Notebook-paper cards (lined, red margin, tape on top) ---------- */
+.chosen, .timer-card, .panel, .log-item, .add-row {
+  position: relative;
+  overflow: visible;
+  border: 0;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, transparent 38px, var(--margin) 38px, var(--margin) 40px, transparent 40px),
+    repeating-linear-gradient(transparent 0 27px, var(--rule) 27px 28px),
+    var(--card);
+  box-shadow: var(--shadow);
+}
+.chosen .backdrop { display: none; }
+.chosen, .panel, .timer-card, .log-item { padding-left: 54px; }
+.chosen::before, .timer-card::before, .panel::before {
+  content: "";
+  position: absolute; z-index: 3; top: -11px; left: 50%;
+  width: 96px; height: 24px; margin-left: -48px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 4px, transparent 4px 9px), var(--tape-2);
+  transform: rotate(-3deg);
+  clip-path: polygon(3% 0, 97% 4%, 100% 30%, 96% 55%, 100% 80%, 97% 100%, 2% 96%, 0 70%, 4% 45%, 0 18%);
+  box-shadow: 0 1px 2px rgba(0,0,0,.12);
+}
+.panel:nth-child(2)::before { background: repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 4px, transparent 4px 9px), var(--tape-3); transform: rotate(4deg); left: 30%; }
+.insights .panel:first-child { transform: rotate(-0.6deg); }
+.insights .panel:nth-child(2) { transform: rotate(0.5deg); }
+.chosen .title { font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; }
+.timer-card { padding-left: 28px; background:
+    repeating-linear-gradient(transparent 0 27px, var(--rule) 27px 28px), var(--card); }
+/* Spiral-notebook holes down the timer card */
+.timer-card::after {
+  content: "";
+  position: absolute; top: 18px; bottom: 18px; left: -9px; width: 18px;
+  background: radial-gradient(circle at 9px 9px, var(--paper) 5px, rgba(0,0,0,.25) 5.5px, transparent 6.5px) 0 0 / 18px 30px repeat-y;
+}
+.field span, .goal-picker > span { font-family: var(--type); font-weight: 400; font-size: 0.85rem; }
+.field select { font-family: var(--sans); font-size: 1.05rem; border: 2px solid var(--ink); border-radius: var(--wobbly); background: var(--card); }
+.timer-clock { font-family: var(--serif); font-weight: 700; font-size: clamp(3.6rem, 12vw, 4.8rem); }
+.timer-goal-text { font-family: var(--serif); font-size: 1.2rem; }
+.ring-track { stroke: var(--paper-2); stroke-dasharray: 2 7; stroke-linecap: round; stroke-width: 10; }
+.ring-progress { stroke-linecap: round; }
+.goal-picker { border-top: 2px dashed var(--line); }
+
+.log-item { padding-left: 54px; }
+.log-info .title { font-family: var(--serif); font-size: 1.7rem; font-weight: 700; line-height: 1; }
+.log-status { font-family: var(--type); font-weight: 400; border-radius: 2px; transform: rotate(-2deg); }
+.log-status.finished {
+  background: none; color: #2a8a55;
+  border: 2px solid currentColor; border-radius: 6px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  transform: rotate(-6deg);    /* looks like a rubber stamp */
+}
+.add-row { padding-left: 54px; }
+.add-row .title { font-family: var(--serif); font-size: 1.35rem; }
+
+/* ---------- Stats: sticky notes ---------- */
+.stat {
+  position: relative;
+  border: 0;
+  border-radius: 1px 1px 18px 1px / 1px 1px 10px 1px;
+  background: var(--note-yellow);
+  box-shadow: 0 1px 1px rgba(0,0,0,.1), 3px 8px 12px -6px rgba(60, 40, 20, 0.5);
+  transform: rotate(-1.5deg);
+}
+.stat:nth-child(5n+2) { background: var(--note-pink);  transform: rotate(1.2deg); }
+.stat:nth-child(5n+3) { background: var(--note-blue);  transform: rotate(-0.6deg); }
+.stat:nth-child(5n+4) { background: var(--note-green); transform: rotate(1.8deg); }
+.stat:nth-child(5n)   { background: var(--note-peach); transform: rotate(-1deg); }
+.stat::before {        /* a pushpin */
+  content: "";
+  position: absolute; top: 7px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff9a8a, var(--accent) 60%, #7a1f10);
+  box-shadow: 1px 2px 2px rgba(0,0,0,.35);
+}
+.stat-value { font-size: 2.6rem; font-weight: 700; margin-top: 6px; }
+.stat-label { font-family: var(--sans); text-transform: none; letter-spacing: 0; font-size: 1rem; }
+
+/* ---------- Calendar: inked squares ---------- */
+.calendar i { border-radius: 2px; border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent); }
+.calendar i.lv4 { position: relative; }
+.calendar i.lv4::after {   /* hit the goal: a little red tick */
+  content: "✓"; position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: var(--serif); font-weight: 700; font-size: 0.8rem; color: #fff; line-height: 1;
+}
+.cal-month, .cal-day, .legend { font-family: var(--serif); font-size: 0.95rem; }
+.panel-note { font-family: var(--serif); font-size: 1.05rem; }
+.panel-count { font-family: var(--type); }
+
+/* ---------- Badges: die-cut stickers ---------- */
+.badge { background: transparent; box-shadow: none; }
+.badge.earned { background: transparent; box-shadow: none; }
+.badge .badge-icon { width: 58px; height: 58px; }
+.badge.earned .badge-icon {
+  box-shadow:
+    0 0 0 4px #fff,                        /* white sticker border */
+    inset 0 0 0 3px color-mix(in srgb, var(--m1) 70%, white),
+    2px 4px 6px rgba(60, 40, 20, 0.35);
+}
+.badge.earned:nth-child(odd) .badge-icon { transform: rotate(-8deg); }
+.badge.earned:nth-child(even) .badge-icon { transform: rotate(6deg); }
+.badge.earned:hover { transform: translateY(-3px) rotate(-2deg); box-shadow: none; }
+.badge-name { font-family: var(--serif); font-size: 1.15rem; font-weight: 700; line-height: 1; margin-top: 10px; }
+.badge-how { font-family: var(--sans); font-size: 0.78rem; }
+
+/* ---------- Bits and bobs ---------- */
+.empty, .status, .shelf-empty { font-family: var(--serif); font-style: normal; font-size: 1.4rem; }
+.session-list li:not(.empty) { border-bottom: 2px dashed var(--line); }
+.session-title { font-family: var(--sans); font-size: 1.05rem; }
+.session-time { font-family: var(--serif); font-size: 1.4rem; }
+.backup {
+  border: 2px dashed var(--ink-faint);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--card) 55%, transparent);
+  font-size: 1rem;
+}
+.toast {
+  border-radius: 2px;
+  background: var(--note-yellow); color: var(--ink);
+  border: 2px solid var(--ink);
+  font-family: var(--sans); font-size: 1.1rem;
+  box-shadow: 4px 5px 0 var(--ink);
+}
+.back { font-family: var(--serif); font-size: 1.3rem; }
+footer { font-family: var(--serif); font-size: 1.15rem; }
+.manual-add summary { font-family: var(--serif); font-size: 1.25rem; }
+.toggle { font-family: var(--sans); font-size: 1.05rem; }
+
+@media (max-width: 560px) {
+  .chosen, .panel, .log-item, .add-row { padding-left: 46px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card .cover { transition: none; }
+}
