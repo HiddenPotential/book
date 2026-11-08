@@ -10,7 +10,7 @@
 //      like "science fiction", so the results are more specific.
 
 const API = "https://openlibrary.org/search.json";
-const FIELDS = "key,title,author_name,author_key,cover_i,first_publish_year,subject,number_of_pages_median,language";
+const FIELDS = "key,title,author_name,author_key,cover_i,first_publish_year,subject,number_of_pages_median,language,edition_count";
 const MAX_QUERY_SUBJECTS = 12; // how many of your book's subjects to search with
 const POOL_SIZE = 150;         // how many candidates to fetch and score
 const RESULTS_SHOWN = 12;
@@ -127,10 +127,17 @@ async function findBooks(text) {
   // well-described ones first so people pick the entry we can recommend from.
   const richness = (b) => Math.min(cleanSubjects(b.subject).length, 5) + (b.cover_i ? 1 : 0);
   // Exact title matches go first ("Educated" should find Educated, not A Deadly Education).
+  // Main entries (lots of editions) go before adaptations and one-off duplicates: searching
+  // "Harry Potter and the Sorcerer's Stone" should find the real book, not a pop-up book version.
   const wanted = titleKey(text);
+  const mostEditions = Math.max(1, ...books.map((b) => b.edition_count || 1));
   return books
-    .map((b, i) => ({ b, i, poor: richness(b) < 3, exact: titleKey(b.title) === wanted }))
-    .sort((x, y) => (y.exact && !y.poor) - (x.exact && !x.poor) || x.poor - y.poor || x.i - y.i)
+    .map((b, i) => ({ b, i, poor: richness(b) < 3, exact: titleKey(b.title) === wanted,
+                      major: (b.edition_count || 1) >= mostEditions * 0.2 }))
+    .sort((x, y) =>
+      (y.major && y.exact && !y.poor) - (x.major && x.exact && !x.poor) ||
+      (y.major && !y.poor) - (x.major && !x.poor) ||
+      x.poor - y.poor || x.i - y.i)
     .slice(0, 8)
     .map((x) => x.b);
 }
@@ -146,40 +153,145 @@ function findBooksWithSubjects(subjects, age = null) {
 }
 
 // ---------- Reading age ----------
-// Open Library tags tell us who a book is for. A picture book should only get
-// picture-book recommendations, never Hamlet or The Hunger Games.
+// Open Library tags tell us who a book is for. Kids should only get kids' books, never a murder
+// mystery or an adult novel, and adults shouldn't get board books.
+//
+// The tricky part: many adult books (Murder on the Orient Express, Of Mice and Men) have ONE
+// kids' edition, so they carry a "juvenile" tag or two. Real kids' books have lots of them.
+// So we count kids' tags instead of just checking for one.
+const KIDS_SIGNS = /juvenile|children'?s|picture books|easy readers?|early readers?|chapter books?|school stories|accelerated reader|infantil|pour la jeunesse/;
+const TEEN_SIGNS = /\byoung adult\b|\bteens?\b|\bteenage/;
+
+// Grown-up topics. Never shown to kids or teens.
+const ADULT_ONLY = /\bsex\b|sexual|erotic|erotica|pornograph|rape|incest|prostitut|bdsm|adultery|new adult/;
+// Violent topics. Never shown to young kids; only shown to older kids if their book has them too.
+const VIOLENT = /murder|homicide|serial (killer|murder)|killers?\b|assassin|torture|massacre|gore|psychopath|mass shooting/;
+// Scary books. Only shown to kids whose own book is scary too (Goosebumps readers can get Goosebumps).
+const SCARY = /horror|ghost stories|haunted|zombies?|vampires?|slasher|thrillers?\b|psychological fiction/;
+
+// School grade a book is meant for, from tags like "Reading level-Grade 9", "Grades 4-6"
+// or "Ages 8-12". Returns the lowest grade mentioned, or null if there are none.
+function lowestGrade(book) {
+  const grades = [];
+  for (const x of rawSubjects(book)) {
+    let m;
+    if ((m = x.match(/reading level-?\s*grade (\d+)/))) grades.push(+m[1]);
+    else if ((m = x.match(/\bgrades? (\d+)/))) grades.push(+m[1]);
+    else if ((m = x.match(/\bages? (\d+)/))) grades.push(+m[1] - 5); // age 8 is about grade 3
+    else if (/kindergarten|preschool/.test(x)) grades.push(0);
+  }
+  return grades.length ? Math.min(...grades) : null;
+}
+
 const AGE_GROUPS = {
   little: {
     label: "Picture books & early readers",
     // Tags that mean "for little kids"
     signs: /picture books|board books|stories in rhyme|bedtime|easy readers|beginner readers|early readers|i can read|caldecott|nursery rhymes|lift-the-flap|toddlers?|preschool|counting|alphabet|libros de l[aá]minas|livres illustr/,
     query: '(subject:"picture books" OR subject:"board books" OR subject:"stories in rhyme" OR subject:"bedtime" OR subject:"easy readers")' +
-           ' -subject:"young adult fiction" -subject:"chapter books"',
+           ' -subject:"young adult fiction" -subject:"chapter books" -subject:"murder" -subject:"horror tales"',
   },
   kids: {
     label: "Children's books",
-    signs: /juvenile|children's/,
     query: '(subject:"juvenile fiction" OR subject:"children\'s fiction" OR subject:"juvenile literature")' +
-           ' -subject:"young adult fiction" -subject:"romance"',
+           ' -subject:"young adult fiction" -subject:"romance" -subject:"love stories"' +
+           ' -subject:"murder" -subject:"serial murders" -subject:"sex" -subject:"erotic stories" -subject:"horror tales"',
+  },
+  teen: {
+    label: "Teen & young adult books",
+    query: '(subject:"young adult fiction" OR subject:"juvenile fiction" OR subject:"teenagers")' +
+           ' -subject:"erotic stories" -subject:"erotica" -subject:"sex"',
   },
 };
-const TEEN_SIGNS = /\byoung adult\b|\bteens?\b|\bteenage/;
 
 function rawSubjects(book) {
   return (book.subject || []).map((x) => x.toLowerCase());
 }
 
-// Returns "little", "kids", or null (teens/adults: no age filter).
+function countTags(book, re) {
+  return rawSubjects(book).filter((x) => re.test(x)).length;
+}
+
+// Is this clearly a kids' book (not an adult book that happens to have a kids' edition)?
+function clearlyForKids(book) {
+  const kids = countTags(book, KIDS_SIGNS);
+  const share = kids / (rawSubjects(book).length || 1);
+  // Lightly tagged kids' books (Goosebumps: 2 of 18 tags) still pass; adult classics with
+  // a kids' edition (Murder on the Orient Express: 2 of 58) don't.
+  return kids >= 4 || share >= 0.15 || (kids >= 2 && share >= 0.07) || littleSigns(book) >= 2;
+}
+
+// Share of a book's tags that say it's for kids or teens.
+function youngShare(book) {
+  return (countTags(book, KIDS_SIGNS) + countTags(book, TEEN_SIGNS)) / (rawSubjects(book).length || 1);
+}
+
+// Is it a kids' or teen book at all?
+function clearlyForYoungReaders(book) {
+  const young = countTags(book, KIDS_SIGNS) + countTags(book, TEEN_SIGNS);
+  const share = youngShare(book);
+  return young >= 3 || share >= 0.12 || (young >= 2 && share >= 0.07) || littleSigns(book) >= 2;
+}
+
+// Returns "little", "kids", "teen", or null (adults).
 function ageGroupOf(book) {
-  const subs = rawSubjects(book);
-  const has = (re) => subs.some((x) => re.test(x));
   const pages = book.number_of_pages_median;
-  const isForKids = has(AGE_GROUPS.kids.signs) || has(/stories in rhyme|picture books|board books/);
+  const kids = countTags(book, KIDS_SIGNS);
+  const teen = countTags(book, TEEN_SIGNS);
+  const isForKids = kids >= 1 || littleSigns(book) >= 1;
+
+  const grade = lowestGrade(book);
 
   // Clearly a picture book: several little-kid tags, or a short kids' book.
   if (littleSigns(book) >= 2 || (isForKids && pages && pages <= 64)) return "little";
-  if (has(TEEN_SIGNS) || !isForKids) return null;
-  return has(AGE_GROUPS.little.signs) && !(pages > 100) ? "little" : "kids";
+  if (!isForKids && !teen) return null;
+  // Adult books with one kids' edition aren't kids' books.
+  if (!clearlyForYoungReaders(book) && !book.authorWritesForKids) return null;
+  // Meant for grade 7 and up, lots of teen tags, a long book, or grown-up topics: a teen book.
+  if (grade !== null && grade >= 7) return "teen";
+  if (teen && (teen * 2 >= kids || pages >= 400 || countTags(book, ADULT_ONLY) >= 1)) return "teen";
+  if (littleSigns(book) >= 1 && !(pages > 100)) return "little";
+  return isForKids ? "kids" : "teen";
+}
+
+// Some Open Library entries have hardly any tags (one Harry Potter entry has 18, only 2 for kids).
+// For those, check whether the author mostly writes kids' books.
+async function detectAge(book) {
+  const age = ageGroupOf(book);
+  if (age || countTags(book, KIDS_SIGNS) + countTags(book, TEEN_SIGNS) === 0 || !book.author_key?.[0]) return age;
+  try {
+    const works = (await searchOpenLibrary({ q: `author_key:${book.author_key[0]}`, sort: "readinglog", limit: 12 }))
+      .filter((w) => rawSubjects(w).length >= 3);
+    // Kids' authors (R.L. Stine) have kids' tags all over their books; adult authors
+    // (Agatha Christie) only have the odd kids' edition.
+    const avgShare = works.reduce((sum, w) => sum + youngShare(w), 0) / (works.length || 1);
+    const mostlyYoung = works.filter((w) => countTags(w, KIDS_SIGNS) + countTags(w, TEEN_SIGNS) > 0).length >= works.length * 0.7;
+    if (works.length >= 3 && avgShare >= 0.08 && mostlyYoung) return ageGroupOf({ ...book, authorWritesForKids: true });
+  } catch { /* fall back to adult */ }
+  return age;
+}
+
+// Is this candidate OK to show to someone who reads books for this age group?
+// "source" is the book they read: a scary or murder-mystery book allows a bit more.
+function ageAppropriate(c, age, source = {}) {
+  const subs = rawSubjects(c).join("|");
+  const grade = lowestGrade(c);
+  if (age === "little" || age === "kids") {
+    if (!clearlyForKids(c)) return false;          // adult book with a kids' edition
+    if (ADULT_ONLY.test(subs)) return false;
+    if (/tragedies|english drama|middle english|poetry, medieval/.test(subs)) return false; // King Lear, Canterbury Tales
+    if (TEEN_SIGNS.test(subs) && countTags(c, TEEN_SIGNS) * 2 >= countTags(c, KIDS_SIGNS)) return false; // mostly a teen book
+    if (VIOLENT.test(subs) && (age === "little" || !source.violent)) return false;
+    if (SCARY.test(subs) && (age === "little" || !source.scary)) return false;
+    // Reading level: no grade 7+ books for kids, no grade 3+ books for little kids.
+    const maxGrade = age === "little" ? 2 : Math.max(6, (source.grade ?? 0) + 2);
+    if (grade !== null && grade > maxGrade) return false;
+    return true;
+  }
+  if (age === "teen") {
+    return clearlyForYoungReaders(c) && !ADULT_ONLY.test(subs);
+  }
+  return true;
 }
 
 // How strongly a candidate looks like a little-kid book (0, 1, 2+ signs).
@@ -227,6 +339,8 @@ function scoreCandidates(book, candidates, age = null) {
   // Picture books are already filtered by age, and their genre tags are loose, so skip the check there.
   const myGenres = age === "little" ? new Set() : genresOf(cleanSubjects(book.subject));
   const myFiction = isFiction(book);
+  const mine = rawSubjects(book).join("|");
+  const source = { violent: VIOLENT.test(mine), scary: SCARY.test(mine), grade: lowestGrade(book) };
   const pool = candidates
     .filter((c) => c.key !== book.key)
     .map((c, rank) => {
@@ -251,30 +365,32 @@ function scoreCandidates(book, candidates, age = null) {
 
       const popularity = 1 - c.rank / pool.length; // small boost for well-known books
       let score = similarity + popularity * 0.5;
-      if (!c.cover_i) score *= 0.6;
-      if (!age && isFiction(c) !== myFiction) score *= 0.25; // novel vs. nonfiction mismatch // books with no cover are usually obscure and hard to find
+      if (!c.cover_i) score *= 0.6; // books with no cover are usually obscure and hard to find
+      if (!age && isFiction(c) !== myFiction) score *= 0.25; // novel vs. nonfiction mismatch
 
       // Age fit: for a picture book, favor books clearly tagged as picture books
       // (some older kids' books are tagged "picture books" only because of an illustrated edition).
       const pages = c.number_of_pages_median;
       if (age === "little") {
         const signs = littleSigns(c);
-        if (TEEN_SIGNS.test(rawSubjects(c).join("|"))) score *= 0.2;
         score *= signs >= 2 ? 1 : signs === 1 ? 0.6 : 0.3;
         // Picture books are short. Long books here are usually novels with an illustrated edition.
         if (pages > 120) score *= 0.1;
         else if (pages > 72) score *= 0.5;
       }
       if (age === "kids" && pages > 450) score *= 0.3;
-      // Keep teen/adult romance out of kids' results.
-      if (age && /young adult|\bteen|new adult|romance|love stories|erotic|sexual/.test(rawSubjects(c).join("|"))) score *= 0.2;
+      if (age === "kids" && /romance|love stories/.test(rawSubjects(c).join("|"))) score *= 0.2;
       if (age === "kids" && littleSigns(c) >= 2) score *= 0.6; // chapter-book readers: fewer board books
+      // Adult readers: no picture books, and kids' books only rarely.
+      if (!age && (littleSigns(c) >= 2 || (pages && pages <= 64 && clearlyForKids(c)))) score *= 0.05;
+      else if (!age && clearlyForKids(c)) score *= 0.4;
 
       // A real match shares 2+ subjects, or at least one fairly specific one.
       // Sharing only a broad subject that a quarter of all candidates have is just noise.
       const specific = sharedKeys.filter((k) => howCommon[k] <= pool.length * 0.25);
       const sameGenre = myGenres.size === 0 || [...genresOf(rawSubjects(c))].some((g) => myGenres.has(g));
-      const goodMatch = sameGenre && (sharedKeys.length >= 2 || specific.length >= 1);
+      const goodMatch = sameGenre && (sharedKeys.length >= 2 || specific.length >= 1) &&
+                        ageAppropriate(c, age, source);
 
       const shared = sharedKeys.map((k) => c.byKey.get(k));
       return { ...c, shared, score, goodMatch };
@@ -471,6 +587,9 @@ async function loadByAuthor(book, age) {
     let docs = await searchOpenLibrary({ q: `author_key:${authorKey}`, sort: "readinglog", limit: 40 });
     if (currentBook?.key !== book.key) return; // the user already moved on to another book
     if (age === "little") docs = docs.filter((d) => !(d.number_of_pages_median > 80));
+    // Some authors write for kids and adults (Roald Dahl wrote adult short stories too).
+    const mine = rawSubjects(book).join("|");
+    if (age) docs = docs.filter((d) => ageAppropriate(d, age, { violent: VIOLENT.test(mine), scary: SCARY.test(mine), grade: lowestGrade(book) }));
     const seen = new Set([titleKey(book.title)]);
     const books = docs.filter((d) => {
       const t = titleKey(d.title);
@@ -614,7 +733,7 @@ async function loadPickedForYou() {
   shelf.replaceChildren(...skeletonCards(8));
   try {
     const alreadyRead = new Set(recent.map((b) => b.key));
-    const age = ageGroupOf(lastBook);
+    const age = await detectAge(lastBook);
     const scored = scoreCandidates(lastBook, await findBooksWithSubjects(subjects, age), age)
       .filter((b) => !alreadyRead.has(b.key));
     const picks = pickResults(lastBook, scored, false);
@@ -685,7 +804,7 @@ async function recommendFor(book) {
       showStatus("Open Library doesn't list any subjects for this book, so we can't find similar ones. Try a different edition.");
       return;
     }
-    const age = ageGroupOf(book);
+    const age = await detectAge(book);
     renderChosen(book, age);
     loadByAuthor(book, age); // runs alongside the main search
     const candidates = await findBooksWithSubjects(subjects, age);
