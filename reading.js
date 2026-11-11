@@ -71,6 +71,7 @@ function removeBook(key) {
   const log = loadLog();
   log.books = log.books.filter((b) => b.key !== key);
   saveLog(log); // reading sessions are kept, so your total minutes don't go down
+  timer = loadTimer();
   if (timer.bookKey === key) { timer.bookKey = ""; saveTimer(); }
   refreshReadingViews();
 }
@@ -90,6 +91,14 @@ function formatClock(totalSeconds) {
   const s = Math.floor(totalSeconds % 60);
   const pad = (n) => String(n).padStart(2, "0");
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+// Short form for the big sticky-note numbers: "11h 47m" fits on one line, "11 hr 47 min" doesn't.
+function formatShort(seconds) {
+  const mins = Math.round(seconds / 60);
+  if (mins < 60) return formatMinutes(seconds);
+  const h = Math.floor(mins / 60);
+  return mins % 60 ? `${h}h ${mins % 60}m` : `${h}h`;
 }
 
 function formatMinutes(seconds) {
@@ -152,15 +161,56 @@ function statCard(value, label, icon) {
 // ======================================================================
 // The timer stores when it was started rather than counting ticks, so it stays correct
 // even if the tab is in the background or the page is reloaded.
+// Each start-to-pause stretch is kept as a "run" [start, end], so finished reading
+// is counted on the day it really happened, even if you press Finish the next morning.
+const MAX_RUN_MS = 2 * 60 * 60 * 1000; // the timer pauses itself after 2 hours (forgotten timers)
 let timer = loadTimer();
 let tickHandle = null;
 
 function loadTimer() {
+  const empty = { bookKey: "", startedAt: null, runs: [] };
   try {
-    return { bookKey: "", startedAt: null, elapsed: 0, ...JSON.parse(localStorage.getItem(TIMER_KEY)) };
+    const saved = { ...empty, ...JSON.parse(localStorage.getItem(TIMER_KEY)) };
+    if (!Array.isArray(saved.runs)) saved.runs = [];
+    // Older versions only stored the total paused time; treat it as reading that just ended.
+    if (saved.elapsed > 0 && saved.runs.length === 0) saved.runs = [[Date.now() - saved.elapsed, Date.now()]];
+    delete saved.elapsed;
+    return saved;
   } catch {
-    return { bookKey: "", startedAt: null, elapsed: 0 };
+    return empty;
   }
+}
+
+// A timer left running for hours (say, overnight) was almost certainly forgotten.
+// Stop it at 2 hours so it can't log a whole night of "reading".
+function stopForgottenTimer() {
+  if (!timer.startedAt || Date.now() - timer.startedAt <= MAX_RUN_MS) return false;
+  timer.runs.push([timer.startedAt, timer.startedAt + MAX_RUN_MS]);
+  timer.startedAt = null;
+  saveTimer();
+  showToast("The timer paused itself after 2 hours. Still reading? Press Resume.");
+  return true;
+}
+
+// Split reading runs at midnight and add them up per day.
+// Returns [{ start, seconds }] with one entry per day, oldest first.
+function runsByDay(runs) {
+  const days = new Map();
+  for (let [start, end] of runs) {
+    while (start < end) {
+      const dayStart = startOfDay(start);
+      const nextDay = new Date(dayStart); nextDay.setDate(nextDay.getDate() + 1);
+      const pieceEnd = Math.min(end, nextDay.getTime());
+      const day = days.get(dayStart) || { start, ms: 0 };
+      day.start = Math.min(day.start, start);
+      day.ms += pieceEnd - start;
+      days.set(dayStart, day);
+      start = pieceEnd;
+    }
+  }
+  return [...days.entries()].sort((a, b) => a[0] - b[0])
+    .map(([, d]) => ({ start: d.start, seconds: Math.round(d.ms / 1000) }))
+    .filter((d) => d.seconds >= 1);
 }
 
 function saveTimer() {
@@ -173,12 +223,14 @@ function goalMinutes() {
 
 function timerSeconds() {
   const running = timer.startedAt ? Date.now() - timer.startedAt : 0;
-  return (timer.elapsed + running) / 1000;
+  return (timer.runs.reduce((sum, [a, b]) => sum + (b - a), 0) + running) / 1000;
 }
 
 function startOrPause() {
+  timer = loadTimer(); // another tab may have changed the timer
+  if (stopForgottenTimer()) return renderTimer();
   if (timer.startedAt) {
-    timer.elapsed += Date.now() - timer.startedAt; // pause
+    timer.runs.push([timer.startedAt, Date.now()]); // pause
     timer.startedAt = null;
   } else {
     timer.startedAt = Date.now(); // start / resume
@@ -188,25 +240,34 @@ function startOrPause() {
 }
 
 function finishSession() {
-  const seconds = Math.round(timerSeconds());
-  if (seconds < 1) return;
+  timer = loadTimer(); // if another tab already saved this session, there's nothing left to save
+  stopForgottenTimer();
+  const runs = timer.startedAt ? [...timer.runs, [timer.startedAt, Date.now()]] : timer.runs;
+  const days = runsByDay(runs);
+  const seconds = days.reduce((sum, d) => sum + d.seconds, 0);
+  if (seconds < 1) { renderTimer(); return; }
   const log = loadLog();
-  log.sessions.unshift({
-    bookKey: timer.bookKey || null,
-    title: findInLog(timer.bookKey)?.title || null, // kept so the session still makes sense if the book is removed
-    start: Date.now() - seconds * 1000,
-    seconds,
-  });
+  for (const day of days) { // oldest first, so the newest ends up at the top of the list
+    log.sessions.unshift({
+      bookKey: timer.bookKey || null,
+      title: findInLog(timer.bookKey)?.title || null, // kept so the session still makes sense if the book is removed
+      start: day.start,
+      seconds: day.seconds,
+    });
+  }
   saveLog(log);
-  timer = { bookKey: timer.bookKey, startedAt: null, elapsed: 0 };
+  timer = { bookKey: timer.bookKey, startedAt: null, runs: [] };
   saveTimer();
-  showToast(`Saved ${formatMinutes(seconds)} of reading. Nice work!`);
   refreshReadingViews();
+  // Feed the reading pet and show the prize screen (pet.js)
+  if (!(typeof petReward === "function" && petReward(seconds))) {
+    showToast(`Saved ${formatMinutes(seconds)} of reading. Nice work!`);
+  }
 }
 
 function resetTimer() {
   if (timerSeconds() > 60 && !confirm("Throw away this reading session without saving it?")) return;
-  timer = { bookKey: timer.bookKey, startedAt: null, elapsed: 0 };
+  timer = { bookKey: timer.bookKey, startedAt: null, runs: [] };
   saveTimer();
   renderTimer();
 }
@@ -214,6 +275,7 @@ function resetTimer() {
 const RING_LENGTH = 2 * Math.PI * 96; // circumference of the progress circle (r = 96)
 
 function renderTimer() {
+  stopForgottenTimer();
   const seconds = timerSeconds();
   const running = Boolean(timer.startedAt);
   const goalSeconds = goalMinutes() * 60;
@@ -267,7 +329,7 @@ function renderTimerBookPicker() {
     return g;
   };
 
-  select.replaceChildren(option("", books.length ? "Choose a book (optional)" : "No book chosen — add books in My books"));
+  select.replaceChildren(option("", books.length ? "Choose a book (optional)" : "No books yet (add some in My books)"));
   if (reading.length) select.append(group("Reading now", reading));
   if (finished.length) select.append(group("Finished", finished));
   if (!books.some((b) => b.key === timer.bookKey)) timer.bookKey = "";
@@ -302,15 +364,23 @@ function renderTimerStats() {
   const list = $("session-list");
   const recent = sessions.slice(0, 8);
   if (recent.length === 0) {
-    list.replaceChildren(textEl("li", "empty", "No sessions yet. Press Start and read for a bit!"));
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.append(emptyShelf("No sessions yet. Press Start and read for a bit!"));
+    list.replaceChildren(li);
     return;
   }
   const books = loadLog().books;
   list.replaceChildren(...recent.map((s) => {
     const li = document.createElement("li");
     const title = books.find((b) => b.key === s.bookKey)?.title || s.title || "Free reading";
+    const del = textEl("button", "session-delete", "✕");
+    del.type = "button";
+    del.title = "Delete this session";
+    del.setAttribute("aria-label", `Delete ${formatMinutes(s.seconds)} of ${title}, ${formatWhen(s.start)}`);
+    del.addEventListener("click", () => deleteSession(s));
     li.append(textEl("span", "session-title", title), textEl("span", "session-when", formatWhen(s.start)),
-              textEl("span", "session-time", formatMinutes(s.seconds)));
+              textEl("span", "session-time", formatMinutes(s.seconds)), del);
     return li;
   }));
 }
@@ -335,6 +405,21 @@ function chime() {
   } catch { /* sound isn't essential */ }
 }
 
+// Remove a session saved by mistake (e.g. a timer that was left running).
+function deleteSession(session) {
+  const treats = Math.floor(session.seconds / 60);
+  const note = treats > 0 ? ` Your pet loses ${treats} treat${treats === 1 ? "" : "s"}.` : "";
+  if (!confirm(`Delete ${formatMinutes(session.seconds)} of reading from ${formatWhen(session.start)}?${note}`)) return;
+  const log = loadLog();
+  const i = log.sessions.findIndex((s) => s.start === session.start && s.seconds === session.seconds && s.bookKey === session.bookKey);
+  if (i === -1) return;
+  log.sessions.splice(i, 1);
+  saveLog(log);
+  refreshReadingViews();
+  if (typeof renderPet === "function") renderPet();
+  showToast("Session deleted");
+}
+
 // Add reading time without the timer (e.g. "I read 15 minutes at bedtime").
 function addManualTime(minutes) {
   const seconds = Math.round(minutes * 60);
@@ -342,13 +427,15 @@ function addManualTime(minutes) {
   log.sessions.unshift({
     bookKey: timer.bookKey || null,
     title: findInLog(timer.bookKey)?.title || null,
-    start: Date.now() - seconds * 1000,
+    start: Math.max(startOfDay(), Date.now() - seconds * 1000), // counts for today
     seconds,
     manual: true,
   });
   saveLog(log);
-  showToast(`Added ${formatMinutes(seconds)} of reading`);
   refreshReadingViews();
+  if (!(typeof petReward === "function" && petReward(seconds))) {
+    showToast(`Added ${formatMinutes(seconds)} of reading`);
+  }
 }
 
 // ======================================================================
@@ -499,7 +586,9 @@ function renderBadges() {
   }));
 
   // Celebrate badges earned since last time (but not all at once on the very first visit).
-  const seen = JSON.parse(localStorage.getItem(BADGES_KEY) || "null");
+  let seen = null;
+  try { seen = JSON.parse(localStorage.getItem(BADGES_KEY) || "null"); } catch { /* treat as a first visit */ }
+  if (!Array.isArray(seen)) seen = null;
   if (seen) {
     const fresh = BADGES.filter(([id]) => earned.includes(id) && !seen.includes(id));
     if (fresh.length) {
@@ -514,6 +603,34 @@ function renderBadges() {
 // ======================================================================
 // Backup and restore
 // ======================================================================
+// Other things saved in this browser that a backup should bring back too
+const BACKUP_EXTRA_KEYS = {
+  pet: "nextread-pet",                 // pet's name and kind
+  readerAge: "nextread-reader-age",    // age picked in "Surprise me"
+  method: "nextread-method",           // tags or AI
+  blindTest: "nextread-blindtest",     // blind test votes (testing evidence!)
+  safetyCheck: "nextread-safetycheck", // last safety check results
+};
+
+function backupExtras() {
+  const extras = {};
+  for (const [name, key] of Object.entries(BACKUP_EXTRA_KEYS)) {
+    const raw = localStorage.getItem(key);
+    if (raw === null) continue;
+    try { extras[name] = JSON.parse(raw); } catch { extras[name] = raw; } // some are plain text
+  }
+  return extras;
+}
+
+function restoreExtras(extras) {
+  if (!extras || typeof extras !== "object") return;
+  for (const [name, key] of Object.entries(BACKUP_EXTRA_KEYS)) {
+    if (!(name in extras)) continue;
+    const value = extras[name];
+    localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+  }
+}
+
 function exportBackup() {
   const data = {
     app: "next-read",
@@ -522,6 +639,7 @@ function exportBackup() {
     log: loadLog(),
     recent: loadRecent(),
     goal: goalMinutes(),
+    extras: backupExtras(),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
@@ -538,9 +656,15 @@ async function importBackup(file) {
     if (data.app !== "next-read" || !Array.isArray(data.log?.books) || !Array.isArray(data.log?.sessions)) {
       throw new Error("not a Next Read backup");
     }
-    const { books, sessions } = data.log;
-    if (!confirm(`Restore ${books.length} books and ${sessions.length} reading sessions? This replaces what's in My books now.`)) return;
+    // Keep only entries that make sense, so a damaged file can't break the pages
+    const books = data.log.books
+      .filter((b) => b && typeof b.key === "string" && typeof b.title === "string")
+      .map((b) => ({ ...b, status: b.status in STATUS_LABEL ? b.status : "reading", rating: Number(b.rating) || 0 }));
+    const sessions = data.log.sessions.filter((x) => x && Number.isFinite(x.start) && Number.isFinite(x.seconds) && x.seconds > 0);
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    if (!confirm(`Restore ${plural(books.length, "book")} and ${plural(sessions.length, "reading session")}? This replaces what's in My books now.`)) return;
     saveLog({ books, sessions });
+    restoreExtras(data.extras);
     if (Array.isArray(data.recent)) localStorage.setItem(RECENT_KEY, JSON.stringify(data.recent));
     if (GOAL_OPTIONS.includes(data.goal)) localStorage.setItem(GOAL_KEY, data.goal);
     localStorage.removeItem(BADGES_KEY); // don't fire a pile of "new badge" messages
@@ -558,6 +682,31 @@ async function importBackup(file) {
 // ======================================================================
 let logFilter = "reading";
 
+// A bookworm peeking out of a book, for empty lists.
+const BOOKWORM_ART = `
+  <svg class="art" viewBox="0 0 160 110" aria-hidden="true">
+    <g class="worm">
+      <path class="ink fill-green" d="M74 70c-2-18 0-34 10-42 9-7 22-3 24 8 2 9-6 14-12 12" />
+      <circle class="ink fill-green" cx="96" cy="30" r="13" />
+      <circle cx="92" cy="27" r="2.2" fill="currentColor" />
+      <circle cx="101" cy="27" r="2.2" fill="currentColor" />
+      <path class="ink thin" d="M91 35c3 3 7 3 10 0" />
+      <path class="ink thin" d="M90 18c-2-6-6-8-9-7M101 17c1-6 5-9 8-8" />
+    </g>
+    <path class="ink fill-accent" d="M14 92c22-6 44-5 66 4 22-9 44-10 66-4v8c-22-6-44-5-66 4-22-9-44-10-66-4z" />
+    <path class="ink fill-card" d="M80 70c-20-10-44-12-64-6v30c20-6 44-4 64 6z" />
+    <path class="ink fill-card" d="M80 70c20-10 44-12 64-6v30c-20-6-44-4-64 6z" />
+    <path class="ink thin" d="M28 74c14-3 30-2 42 2M28 84c14-3 30-2 42 2M92 76c12-4 28-5 42-2M92 86c12-4 28-5 42-2" />
+  </svg>`;
+
+function emptyShelf(message) {
+  const box = document.createElement("div");
+  box.className = "empty-art";
+  box.innerHTML = BOOKWORM_ART; // fixed drawing, no user data
+  box.append(textEl("p", "empty", message));
+  return box;
+}
+
 function renderLogStats() {
   const { books, sessions } = loadLog();
   const total = sessions.reduce((sum, s) => sum + s.seconds, 0);
@@ -565,7 +714,7 @@ function renderLogStats() {
     statCard(String(books.filter((b) => b.status === "finished").length), "Books finished"),
     statCard(String(books.filter((b) => b.status === "reading").length), "Reading now"),
     statCard(String(books.filter((b) => b.status === "want").length), "Want to read"),
-    statCard(formatMinutes(total), "Total reading time"),
+    statCard(formatShort(total), "Total reading time"),
     statCard(readingStreak(sessions), "Day streak", "flame"),
   );
 }
@@ -625,8 +774,15 @@ function logItem(entry, sessions, index) {
     }));
   } else {
     actions.append(actionButton("⏱ Start timer", () => {
-      timer.bookKey = entry.key;
-      saveTimer();
+      timer = loadTimer();
+      // Don't move minutes already on the clock over to a different book.
+      if (timerSeconds() >= 1 && timer.bookKey !== entry.key) {
+        const other = findInLog(timer.bookKey)?.title || "free reading";
+        showToast(`The timer already has time for ${other}. Finish or reset it first.`);
+      } else {
+        timer.bookKey = entry.key;
+        saveTimer();
+      }
       location.hash = "timer";
     }));
   }
@@ -667,19 +823,22 @@ function renderLog() {
       want: "Nothing saved yet. Tap the bookmark on any recommended book to save it here.",
       all: "Your shelf is empty. Search above to add your first book.",
     }[logFilter];
-    $("log-list").replaceChildren(textEl("p", "empty", msg));
+    $("log-list").replaceChildren(emptyShelf(msg));
     return;
   }
   $("log-list").replaceChildren(...shown.map((b, i) => logItem(b, sessions, i)));
 }
 
 // Search to add a book
+let addSearchRequest = 0;
 async function searchToAdd(text) {
   const results = $("log-search-results");
+  const req = ++addSearchRequest; // a slower, older search mustn't replace a newer one
   $("log-status").textContent = "Searching…";
   results.replaceChildren();
   try {
     const books = await findBooks(text);
+    if (req !== addSearchRequest) return;
     $("log-status").textContent = books.length ? "" : "No books found. Try the author's name too.";
     results.replaceChildren(...books.slice(0, 6).map((book) => {
       const row = document.createElement("div");
@@ -703,6 +862,7 @@ async function searchToAdd(text) {
       return row;
     }));
   } catch (err) {
+    if (req !== addSearchRequest) return;
     $("log-status").textContent = `Couldn't reach Open Library (${err.message}).`;
   }
 }
@@ -775,6 +935,7 @@ function saveButtonFor(book) {
 // Pages (Discover / Reading timer / My books) and small helpers
 // ======================================================================
 function refreshReadingViews() {
+  if (typeof renderPet === "function") renderPet();
   renderTimerBookPicker();
   renderTimer();
   renderTimerStats();
@@ -786,7 +947,7 @@ function refreshReadingViews() {
 
 function route() {
   const view = (location.hash.replace("#", "") || "discover");
-  const known = ["discover", "timer", "log"].includes(view) ? view : "discover";
+  const known = ["discover", "timer", "log", "test", "about"].includes(view) ? view : "discover";
   for (const el of document.querySelectorAll("[data-view]")) el.hidden = el.dataset.view !== known;
   for (const link of document.querySelectorAll("[data-nav]")) {
     link.classList.toggle("active", link.dataset.nav === known);
@@ -811,6 +972,11 @@ function showToast(message) {
 
 // ---------- Wire up buttons ----------
 $("timer-start").addEventListener("click", startOrPause);
+// If the timer or the log changes in another tab, show the change here too.
+window.addEventListener("storage", (e) => {
+  if (e.key === TIMER_KEY) { timer = loadTimer(); renderTimer(); }
+  if (e.key === LOG_KEY) { refreshReadingViews(); if (typeof renderPet === "function") renderPet(); }
+});
 $("timer-finish").addEventListener("click", finishSession);
 $("timer-reset").addEventListener("click", resetTimer);
 $("timer-book").addEventListener("change", (e) => { timer.bookKey = e.target.value; saveTimer(); });

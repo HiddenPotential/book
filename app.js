@@ -10,7 +10,7 @@
 //      like "science fiction", so the results are more specific.
 
 const API = "https://openlibrary.org/search.json";
-const FIELDS = "key,title,author_name,author_key,cover_i,first_publish_year,subject,number_of_pages_median,language,edition_count";
+const FIELDS = "key,title,author_name,author_key,cover_i,first_publish_year,subject,number_of_pages_median,language,edition_count,first_sentence";
 const MAX_QUERY_SUBJECTS = 12; // how many of your book's subjects to search with
 const POOL_SIZE = 150;         // how many candidates to fetch and score
 const RESULTS_SHOWN = 12;
@@ -30,6 +30,18 @@ const sameAuthorBox = $("same-author");
 let currentBook = null;  // the book the user picked
 let lastScored = [];     // scored candidates, so the checkbox can re-filter without refetching
 let shownCount = RESULTS_SHOWN; // grows when "Show more" is clicked
+
+// Two ways to pick books (see the About page):
+//   "tags" = matching Open Library subjects (fast, works offline from the AI)
+//   "ai"   = a small AI model reads each book's description and finds similar meaning (ai.js)
+let recMethod = localStorage.getItem("nextread-method") === "ai" ? "ai" : "tags";
+let lastCandidates = []; // every book the search found, before ranking (the AI re-ranks these)
+let lastAge = null;      // reading age of the current book
+let aiScored = null;     // AI ranking for the current book, once it's ready
+
+// Each kind of request gets a number. When a slow, older request finally finishes,
+// it checks its number and quietly gives up if a newer request has started since.
+const latest = { rec: 0, search: 0, genre: 0, forYou: 0 };
 
 // ---------- Subject cleanup ----------
 // Open Library subjects are messy: "Survival, fiction", "nyt:series_books=...",
@@ -132,10 +144,16 @@ async function findBooks(text) {
   const wanted = titleKey(text);
   const mostEditions = Math.max(1, ...books.map((b) => b.edition_count || 1));
   return books
-    .map((b, i) => ({ b, i, poor: richness(b) < 3, exact: titleKey(b.title) === wanted,
-                      major: (b.edition_count || 1) >= mostEditions * 0.2 }))
+    .map((b, i) => {
+      const editions = b.edition_count || 1;
+      return { b, i, poor: richness(b) < 3, exact: titleKey(b.title) === wanted,
+               // a real book, not a one-off adaptation ("Wonder" has far fewer editions than
+               // "The Wonderful Wizard of Oz" but is still the book you meant)
+               established: editions >= Math.max(5, mostEditions * 0.02),
+               major: editions >= mostEditions * 0.2 };
+    })
     .sort((x, y) =>
-      (y.major && y.exact && !y.poor) - (x.major && x.exact && !x.poor) ||
+      (y.established && y.exact && !y.poor) - (x.established && x.exact && !x.poor) ||
       (y.major && !y.poor) - (x.major && !x.poor) ||
       x.poor - y.poor || x.i - y.i)
     .slice(0, 8)
@@ -267,8 +285,18 @@ async function detectAge(book) {
     const avgShare = works.reduce((sum, w) => sum + youngShare(w), 0) / (works.length || 1);
     const mostlyYoung = works.filter((w) => countTags(w, KIDS_SIGNS) + countTags(w, TEEN_SIGNS) > 0).length >= works.length * 0.7;
     if (works.length >= 3 && avgShare >= 0.08 && mostlyYoung) return ageGroupOf({ ...book, authorWritesForKids: true });
-  } catch { /* fall back to adult */ }
+  } catch {
+    // Couldn't check the author (slow or offline). The book does have kids' or teen tags,
+    // so play it safe and treat it as a young reader's book instead of an adult one.
+    return ageGroupOf({ ...book, authorWritesForKids: true });
+  }
   return age;
+}
+
+// What about the reader's own book loosens the kids' filter (a Goosebumps reader can get scary books).
+function sourceInfo(book) {
+  const mine = rawSubjects(book).join("|");
+  return { violent: VIOLENT.test(mine), scary: SCARY.test(mine), grade: lowestGrade(book) };
 }
 
 // Is this candidate OK to show to someone who reads books for this age group?
@@ -567,7 +595,8 @@ function renderChosen(book, age = null) {
 
 function renderRecommendations() {
   // Ask for one extra book so we know whether "Show more" has anything left to show.
-  const picks = pickResults(currentBook, lastScored, sameAuthorBox.checked, shownCount + 1);
+  const ranked = recMethod === "ai" && aiScored ? aiScored : lastScored;
+  const picks = pickResults(currentBook, ranked, sameAuthorBox.checked, shownCount + 1);
   const visible = picks.slice(0, shownCount);
   const alreadyShown = recList.querySelectorAll(".card:not(.skeleton)").length;
   // Only animate the newly added cards, not the ones already on screen.
@@ -621,12 +650,19 @@ function saveRecent(book) {
   renderRecent();
 }
 
+// "Frog and Toad (Frog and Toad All Year / Frog and Toad Are Friends / …)" -> "Frog and Toad"
+function shortTitle(title, max = 30) {
+  const main = title.split(/\s[(:]|\s\/\s/)[0].trim() || title;
+  return main.length > max ? `${main.slice(0, max - 1).trim()}…` : main;
+}
+
 function renderRecent() {
   const list = loadRecent();
   $("recent").hidden = list.length === 0;
   $("recent-list").replaceChildren(...list.map((book) => {
-    const btn = textEl("button", "", book.title);
+    const btn = textEl("button", "", shortTitle(book.title));
     btn.type = "button";
+    btn.title = book.title; // the full title shows on hover
     btn.addEventListener("click", () => recommendFor(book));
     return btn;
   }));
@@ -689,10 +725,12 @@ function varied(books, max = 16) {
 }
 
 async function showGenre(label) {
-  for (const chip of document.querySelectorAll(".chip")) {
+  // Only the genre buttons (not the Surprise me or daily-goal buttons elsewhere on the site)
+  for (const chip of document.querySelectorAll("#genre-chips .chip")) {
     chip.setAttribute("aria-pressed", chip.textContent === label);
   }
   const shelf = $("genre-shelf");
+  const req = ++latest.genre;
   if (!shelfCache[label]) {
     shelf.replaceChildren(...skeletonCards(8));
     try {
@@ -702,9 +740,11 @@ async function showGenre(label) {
       if (maxPages) docs = docs.filter((d) => d.number_of_pages_median && d.number_of_pages_median <= maxPages);
       shelfCache[label] = varied(docs);
     } catch {
-      return fillShelf(shelf, []);
+      if (req === latest.genre) fillShelf(shelf, []);
+      return;
     }
   }
+  if (req !== latest.genre) return; // another genre was clicked while this one loaded
   fillShelf(shelf, shelfCache[label]);
 }
 
@@ -721,9 +761,12 @@ async function loadPickedForYou() {
   const recent = loadRecent();
   const section = $("for-you");
   if (recent.length === 0) { section.hidden = true; return; }
+  const req = ++latest.forYou;
+  const stale = () => req !== latest.forYou;
 
   let lastBook = recent[0];
   try { lastBook = await withSubjects(lastBook); } catch { /* use what we have */ }
+  if (stale()) return;
   const subjects = cleanSubjects(lastBook.subject).slice(0, MAX_QUERY_SUBJECTS);
   if (subjects.length === 0) { section.hidden = true; return; }
 
@@ -734,16 +777,20 @@ async function loadPickedForYou() {
   try {
     const alreadyRead = new Set(recent.map((b) => b.key));
     const age = await detectAge(lastBook);
-    const scored = scoreCandidates(lastBook, await findBooksWithSubjects(subjects, age), age)
+    const found = await findBooksWithSubjects(subjects, age);
+    if (stale()) return;
+    const scored = scoreCandidates(lastBook, found, age)
       .filter((b) => !alreadyRead.has(b.key));
     const picks = pickResults(lastBook, scored, false);
     shelf.replaceChildren(...picks.map((b, i) => bookCard(b, i, { tags: b.shared.slice(0, 2) })));
   } catch {
-    section.hidden = true;
+    if (!stale()) section.hidden = true;
   }
 }
 
 function goHome() {
+  latest.rec++;    // drop any book that's still loading
+  latest.search++; // and any search
   currentBook = null;
   matchesSection.hidden = true;
   resultsSection.hidden = true;
@@ -782,10 +829,20 @@ async function withSubjects(book) {
 
 // ---------- Main flow ----------
 async function recommendFor(book) {
+  const req = ++latest.rec;
+  const stale = () => req !== latest.rec; // true once the user picked another book or went home
   currentBook = book;
+  // Forget the last book's lists right away, so the blind test and the AI switch
+  // can't use them while this book is still loading.
+  lastScored = [];
+  lastCandidates = [];
+  aiScored = null;
+  lastAge = null;
+  setBlindTestReady(false);
   shownCount = RESULTS_SHOWN;
   $("show-more").hidden = true;
   $("by-author").hidden = true;
+  if (typeof showBlindTest === "function") showBlindTest(false); // leave any blind test
   homeSection.hidden = true;
   matchesSection.hidden = true;
   resultsSection.hidden = false;
@@ -796,6 +853,7 @@ async function recommendFor(book) {
 
   try {
     book = await withSubjects(book);
+    if (stale()) return;
     currentBook = book;
     const subjects = cleanSubjects(book.subject).slice(0, MAX_QUERY_SUBJECTS);
     if (subjects.length === 0) {
@@ -805,21 +863,40 @@ async function recommendFor(book) {
       return;
     }
     const age = await detectAge(book);
+    if (stale()) return;
     renderChosen(book, age);
     loadByAuthor(book, age); // runs alongside the main search
     const candidates = await findBooksWithSubjects(subjects, age);
+    if (stale()) return;
     lastScored = scoreCandidates(book, candidates, age);
-    recList.replaceChildren();
-    renderRecommendations();
+    lastCandidates = candidates;
+    lastAge = age;
+    aiScored = null;
+    setBlindTestReady(true);
+    if (recMethod === "ai" && typeof aiRecommend === "function") {
+      aiRecommend(); // shows its own progress, then the AI list
+    } else {
+      recList.replaceChildren();
+      renderRecommendations();
+    }
     saveRecent({ // store only what we need to re-run recommendations later
       key: book.key, title: book.title, author_name: book.author_name,
       author_key: book.author_key, cover_i: book.cover_i, subject: book.subject,
       number_of_pages_median: book.number_of_pages_median,
     });
   } catch (err) {
+    if (stale()) return;
     recList.replaceChildren();
     showStatus(`Something went wrong talking to Open Library (${err.message}). Please try again.`);
   }
+}
+
+// The blind test needs both finished lists, so its button waits until they're ready.
+function setBlindTestReady(ready) {
+  const btn = $("blind-test-btn");
+  if (!btn) return;
+  btn.disabled = !ready;
+  btn.title = ready ? "" : "Wait for the recommendations to finish loading";
 }
 
 form.addEventListener("submit", async (e) => {
@@ -832,8 +909,11 @@ form.addEventListener("submit", async (e) => {
   matchList.replaceChildren(...skeletonCards(4));
   matchesSection.hidden = false;
   showStatus("Searching the shelves…");
+  const req = ++latest.search;
+  latest.rec++; // a new search also cancels a book that's still loading
   try {
     const books = await findBooks(text);
+    if (req !== latest.search) return; // a newer search has started
     if (books.length === 0) {
       matchesSection.hidden = true;
       showStatus("No books found. Check the spelling or try the author's name too.");
@@ -842,6 +922,7 @@ form.addEventListener("submit", async (e) => {
     showStatus("");
     renderMatches(books);
   } catch (err) {
+    if (req !== latest.search) return;
     matchesSection.hidden = true;
     showStatus(`Something went wrong talking to Open Library (${err.message}). Please try again.`);
   }

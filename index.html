@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Next Read: book recommendations</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M10 12c0-3 2-5 5-5h37v44H15c-3 0-5 2-5 5z' fill='%23c2462e' stroke='%232b2420' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M10 56c0-3 2-5 5-5h37v6H15c-3 0-5-1-5-1z' fill='%23fffdf6' stroke='%232b2420' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M22 18h22M22 26h16' stroke='%23fbe7a1' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Patrick+Hand&family=Special+Elite&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=4" />
-  <link rel="stylesheet" href="scrapbook.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=14" />
+  <link rel="stylesheet" href="scrapbook.css?v=11" />
 </head>
 <body>
   <!-- Top navigation: switches between the three pages of the site -->
@@ -18,10 +19,47 @@
       <a href="#discover" data-nav="discover">Discover</a>
       <a href="#timer" data-nav="timer">Reading timer <span id="nav-timer-dot" class="live-dot" hidden></span></a>
       <a href="#log" data-nav="log">My books</a>
+      <a href="#test" data-nav="test">Testing</a>
+      <a href="#about" data-nav="about">About</a>
     </div>
   </nav>
 
   <header class="hero" data-view="discover">
+    <!-- Hand-drawn decorations on both sides of the search box (just for looks) -->
+    <div class="hero-art" aria-hidden="true">
+      <svg class="art art-left" viewBox="0 0 220 240">
+        <path class="ink thin steam" d="M100 44c-9-10 9-16 0-28M118 46c-9-10 9-16 0-28" />
+        <path class="ink fill-peach" d="M82 56h52l-5 44a9 9 0 0 1-9 8H96a9 9 0 0 1-9-8z" />
+        <path class="ink" d="M132 66c16-3 20 20 2 24" />
+        <path class="ink thin" d="M98 74c6 6 14 6 20 0" />
+        <g transform="rotate(-4 110 126)">
+          <rect class="ink fill-yellow" x="36" y="110" width="150" height="30" rx="4" />
+          <path class="ink thin" d="M50 110v30M172 110v30M68 125h82" />
+        </g>
+        <g transform="rotate(3 110 160)">
+          <rect class="ink fill-blue" x="26" y="144" width="166" height="34" rx="4" />
+          <path class="ink thin" d="M42 144v34M60 155h92M60 167h56" />
+        </g>
+        <rect class="ink fill-pink" x="16" y="184" width="186" height="38" rx="5" />
+        <path class="ink thin" d="M34 184v38M184 184v38M54 203h110" />
+        <path class="fill-accent twinkle" d="M34 64l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" />
+      </svg>
+      <svg class="art art-right" viewBox="0 0 240 220">
+        <path class="ink fill-accent" d="M22 176c34-8 70-6 98 10 28-16 64-18 98-10v10c-34-8-70-6-98 10-28-16-64-18-98-10z" />
+        <path class="ink fill-card" d="M120 74c-28-16-64-18-96-10v112c32-8 68-6 96 10z" />
+        <path class="ink fill-card" d="M120 74c28-16 64-18 96-10v112c-32-8-68-6-96 10z" />
+        <path class="ink" d="M120 74v112" />
+        <path class="ink thin" d="M40 86c22-4 44-3 64 4M40 104c22-4 44-3 64 4M40 122c22-4 44-3 64 4M40 140c20-4 38-3 52 3" />
+        <path class="ink thin" d="M136 90c20-7 42-8 64-4M136 108c20-7 42-8 64-4M136 126c20-7 42-8 64-4M136 144c16-5 32-6 48-4" />
+        <path class="ink fill-yellow twinkle" d="M96 34l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" />
+        <path class="ink fill-yellow twinkle delay-1" d="M150 16l3 6 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1z" />
+        <path class="ink fill-pink twinkle delay-2" d="M196 52c-4-8-16-6-14 3 1 6 9 10 14 15 5-5 13-9 14-15 2-9-10-11-14-3z" />
+        <path class="ink thin" d="M120 66c-2-10 2-20 10-26M126 60c4-8 12-12 20-12" />
+      </svg>
+      <svg class="art doodle d1" viewBox="0 0 40 40"><path class="ink thin" d="M20 4v32M4 20h32M9 9l22 22M31 9 9 31" /></svg>
+      <svg class="art doodle d2" viewBox="0 0 60 30"><path class="ink thin" d="M4 18c8-12 14 10 22 0s14 10 22 0 8-6 8-6" /></svg>
+      <svg class="art doodle d3" viewBox="0 0 40 40"><circle class="ink thin" cx="20" cy="20" r="12" /></svg>
+    </div>
     <p class="eyebrow">A little bookshop of ideas</p>
     <h1><a href="#" data-home>Next <em>Read</em></a></h1>
     <p class="tagline">Tell us the last book you loved. We'll find what to pick up next.</p>
@@ -29,7 +67,7 @@
     <!-- Step 1: search for the book you read -->
     <form id="search-form" class="search">
       <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="search-input" type="text" placeholder="Title or author, e.g. The Hunger Games" autocomplete="off" aria-label="Book you last read" required />
+      <input id="search-input" type="text" placeholder="Book title or author" autocomplete="off" aria-label="Book you last read" required />
       <button type="submit">Find books</button>
     </form>
 
@@ -45,6 +83,37 @@
 
     <!-- Homepage: suggestions before you search -->
     <div id="home">
+      <!-- Surprise me: a random book for your age -->
+      <section id="surprise" class="home-section surprise">
+        <div class="section-head">
+          <div>
+            <p class="kicker">Can't decide?</p>
+            <h2 class="section-title">Surprise me with a book</h2>
+          </div>
+          <p class="hint">Pick your age, then roll for a random book.</p>
+        </div>
+        <div class="surprise-controls">
+          <div class="surprise-row"><span class="surprise-label">For</span><div id="surprise-ages" class="chips" role="group" aria-label="Reader's age"></div></div>
+          <div class="surprise-row"><span class="surprise-label">Kind</span><div id="surprise-kinds" class="chips" role="group" aria-label="Kind of book"></div></div>
+          <button id="surprise-roll" type="button" class="big-button surprise-roll">🎲 Surprise me!</button>
+        </div>
+        <p id="surprise-status" class="status" aria-live="polite"></p>
+        <div id="surprise-card" class="surprise-card placeholder" aria-live="polite">
+          <div id="surprise-cover" class="surprise-cover-wrap"></div>
+          <div class="surprise-info">
+            <p id="surprise-for" class="surprise-for"></p>
+            <h3 id="surprise-title" class="surprise-title"></h3>
+            <div id="surprise-meta"></div>
+            <div id="surprise-tags" class="tags"></div>
+            <p id="surprise-desc" class="surprise-desc"></p>
+            <div class="surprise-actions">
+              <button id="surprise-similar" type="button" class="pill-button">📚 Find books like this</button>
+              <button id="surprise-save" type="button" class="pill-button">🔖 Save to Want to read</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="for-you" class="home-section" hidden>
         <div class="section-head">
           <div>
@@ -97,6 +166,60 @@
           Include same author
         </label>
       </div>
+      <!-- Two ways to pick books: tag matching or the AI -->
+      <div id="method-row" class="method-row">
+        <div class="method-switch" role="group" aria-label="How to pick books">
+          <span class="method-label">Pick books by</span>
+          <div class="seg">
+            <button type="button" class="seg-btn" data-method="tags" aria-pressed="true">📚 Matching tags</button>
+            <button type="button" class="seg-btn" data-method="ai" aria-pressed="false">✨ AI: similar meaning</button>
+          </div>
+        </div>
+        <button id="blind-test-btn" type="button" class="pill-button">🧪 Blind test: compare both</button>
+        <p id="method-note" class="method-note"></p>
+      </div>
+      <div id="ai-progress" class="ai-progress" hidden><span></span></div>
+
+      <!-- Blind test: two lists, one from each method, without saying which is which -->
+      <section id="blind-test" class="blind-test" hidden>
+        <div class="bt-head">
+          <p class="kicker">Blind test</p>
+          <h2 class="section-title">Which list would you rather read from?</h2>
+          <p class="bt-help">One list was picked by the AI and one by tag matching. We won't tell you which until you vote!</p>
+          <label class="bt-tester">Tester number (no names, please)
+            <input id="bt-tester" type="text" maxlength="20" placeholder="e.g. 7" autocomplete="off" />
+          </label>
+        </div>
+        <div class="bt-lists">
+          <div class="bt-list" id="bt-box-a">
+            <div class="bt-stamp" aria-hidden="true">A</div>
+            <h3 class="bt-list-title">List A</h3>
+            <span class="bt-method" id="bt-method-a"></span>
+            <div id="bt-list-a" class="grid bt-grid"></div>
+          </div>
+          <div class="bt-list" id="bt-box-b">
+            <div class="bt-stamp" aria-hidden="true">B</div>
+            <h3 class="bt-list-title">List B</h3>
+            <span class="bt-method" id="bt-method-b"></span>
+            <div id="bt-list-b" class="grid bt-grid"></div>
+          </div>
+        </div>
+        <div id="bt-votes" class="bt-votes">
+          <span class="bt-votes-label">Which list do you like better?</span>
+          <button type="button" class="vote-btn vote-a" data-vote="A"><span class="vote-letter">A</span> List A</button>
+          <button type="button" class="vote-btn vote-same" data-vote="same">About the same</button>
+          <button type="button" class="vote-btn vote-b" data-vote="B"><span class="vote-letter">B</span> List B</button>
+        </div>
+        <div id="bt-reveal" class="bt-reveal" hidden>
+          <p id="bt-reveal-text"></p>
+          <div class="bt-reveal-buttons">
+            <button id="bt-again" type="button" class="pill-button">Next tester, same book</button>
+            <button id="bt-new-book" type="button" class="pill-button">Try another book</button>
+            <button id="bt-done" type="button" class="text-button">Back to recommendations</button>
+          </div>
+        </div>
+      </section>
+
       <div id="rec-list" class="grid"></div>
       <div class="more-wrap">
         <button id="show-more" class="ghost-button" type="button" hidden>Show more books</button>
@@ -134,6 +257,12 @@
             <circle id="ring-progress" class="ring-progress" cx="110" cy="110" r="96" />
           </svg>
           <div class="timer-center">
+            <svg class="art flip-book" viewBox="0 0 64 42" aria-hidden="true">
+              <path class="ink fill-accent" d="M4 34c9-3 19-3 28 2 9-5 19-5 28-2v5c-9-3-19-3-28 2-9-5-19-5-28-2z" />
+              <path class="ink fill-card" d="M32 8c-8-5-18-6-27-3v29c9-3 19-2 27 3z" />
+              <path class="ink fill-card" d="M32 8c8-5 18-6 27-3v29c-9-3-19-2-27 3z" />
+              <path class="ink fill-card page" d="M32 8c8-5 18-6 27-3v29c-9-3-19-2-27 3z" />
+            </svg>
             <div id="timer-clock" class="timer-clock">00:00</div>
             <div id="timer-goal-text" class="timer-goal-text">Goal: 20 min</div>
           </div>
@@ -159,6 +288,32 @@
           <div id="goal-chips" class="chips"></div>
         </div>
       </div>
+
+      <!-- Reading pet: grows with every minute you read -->
+      <section id="pet-panel" class="pet-panel" aria-labelledby="pet-heading">
+        <div id="pet-art" class="pet-art"></div>
+        <div class="pet-info">
+          <p class="kicker" id="pet-heading">My reading pet</p>
+          <div class="pet-name-row">
+            <h3 id="pet-name" class="pet-name">Pip</h3>
+            <button id="pet-rename" type="button" class="text-button">Rename</button>
+            <button id="pet-change" type="button" class="text-button">Change pet</button>
+          </div>
+          <div class="pet-stage-row"><span id="pet-stage" class="pet-stage"></span><span id="pet-treats" class="pet-treats"></span></div>
+          <p id="pet-mood" class="pet-mood"></p>
+          <div id="pet-progress" class="pet-progress" role="presentation"><span></span></div>
+          <p id="pet-next" class="pet-next"></p>
+          <p class="pet-tip">Every minute you read = 1 treat. Save your reading with the timer to feed your pet.</p>
+        </div>
+        <!-- Pet chooser: shown until you pick a pet, and when you press "Change pet" -->
+        <div id="pet-picker" class="pet-picker" hidden>
+          <p class="kicker">My reading pet</p>
+          <h3 id="pet-picker-title" class="pet-picker-title">Choose your reading pet!</h3>
+          <p id="pet-picker-note" class="pet-picker-note"></p>
+          <div id="pet-picker-list" class="pet-picker-list" role="group" aria-labelledby="pet-picker-title"></div>
+          <button id="pet-picker-cancel" type="button" class="text-button" hidden>Keep my pet</button>
+        </div>
+      </section>
 
       <div class="stat-row" id="timer-stats"></div>
 
@@ -222,15 +377,204 @@
         </div>
       </div>
     </section>
+
+    <!-- ========== Blind test results ========== -->
+    <section data-view="test" class="page" hidden>
+      <div class="page-head">
+        <p class="kicker">Testing evidence</p>
+        <h2 class="page-title">Testing</h2>
+        <p class="page-sub">Two tests: a blind test where students pick between the AI and tag matching, and an automatic safety check that makes sure kids never get adult books.</p>
+      </div>
+
+      <h3 class="test-part">🧪 Test 1: Blind test with students</h3>
+      <div class="panel test-how">
+        <h3 class="sub-title">How to run a test</h3>
+        <ol class="steps">
+          <li><span class="step-icon" aria-hidden="true">🔎</span>On <a href="#discover">Discover</a>, the student searches for a book they've read and liked.</li>
+          <li><span class="step-icon" aria-hidden="true">🧪</span>Click <strong>Blind test: compare both</strong>. Two lists of 6 books appear, List A and List B.</li>
+          <li><span class="step-icon" aria-hidden="true">🙋</span>Type a tester number (no names), then the student picks the list they'd rather read from.</li>
+          <li><span class="step-icon" aria-hidden="true">📊</span>The answer is saved here. Which list is the AI is random every time.</li>
+        </ol>
+      </div>
+
+      <div class="stat-row" id="test-stats"></div>
+      <div id="test-empty"></div>
+
+      <div id="test-chart-wrap" class="panel chart-panel" hidden>
+        <h3 class="sub-title">Which list did students pick?</h3>
+        <div id="test-chart" class="bar-chart"></div>
+      </div>
+
+      <div id="test-groups-wrap" class="panel table-panel" hidden>
+        <h3 class="sub-title">By reading age</h3>
+        <table class="data-table">
+          <thead><tr><th>Books for</th><th>Votes</th><th>AI</th><th>Tags</th><th>Same</th></tr></thead>
+          <tbody id="test-groups"></tbody>
+        </table>
+      </div>
+
+      <div id="test-votes-wrap" class="panel table-panel" hidden>
+        <h3 class="sub-title">Every vote</h3>
+        <table class="data-table">
+          <thead><tr><th>When</th><th>Tester</th><th>Book</th><th>Age</th><th>Picked</th></tr></thead>
+          <tbody id="test-votes"></tbody>
+        </table>
+      </div>
+
+      <h3 class="test-part">🛡️ Test 2: Automatic safety check</h3>
+      <section class="panel safety-check">
+        <p>Runs 18 popular kids' books through Next Read, from picture books like <em>The Gruffalo</em> to chapter books like <em>Holes</em>. Every recommended book is checked with simple, separate rules: murder, horror, grown-up topics, a reading level of grade 7 or higher, or no kids' tags at all. Murder and horror are allowed only when the kid's own book has them (a kids' mystery, Goosebumps).</p>
+        <p>Each book is also run with the age filter turned <strong>off</strong>, to show what kids would get without it.</p>
+        <div class="sc-controls">
+          <label class="toggle">
+            <input id="sc-ai" type="checkbox" />
+            <span class="switch" aria-hidden="true"></span>
+            Also check the AI (slower)
+          </label>
+          <button id="sc-run" type="button" class="big-button">Run safety check</button>
+        </div>
+        <div id="sc-progress" class="ai-progress" hidden><span></span></div>
+        <p id="sc-status" class="status" aria-live="polite"></p>
+
+        <div id="sc-results" hidden>
+          <p id="sc-date" class="sc-date"></p>
+          <div id="sc-summary" class="stat-row"></div>
+          <table class="data-table sc-table">
+            <thead><tr><th>Kids' book</th><th>Reading age</th><th>No age filter</th><th>Tag matching</th><th id="sc-ai-col">AI</th></tr></thead>
+            <tbody id="sc-table"></tbody>
+          </table>
+          <div id="sc-through-wrap" class="sc-through" hidden>
+            <h4>⚠️ Problems that got through (to fix)</h4>
+            <ul id="sc-through"></ul>
+          </div>
+          <details id="sc-blocked-wrap" class="sc-blocked" hidden>
+            <summary>What kids would get without the age filter</summary>
+            <ul id="sc-blocked"></ul>
+          </details>
+          <button id="sc-download" type="button" class="pill-button">⬇ Download safety results (CSV)</button>
+        </div>
+      </section>
+
+      <div class="backup">
+        <p>Votes are saved only in this browser. Download them as a spreadsheet (CSV) for your report.</p>
+        <div class="backup-buttons">
+          <button id="test-download" type="button" class="pill-button">⬇ Download votes (CSV)</button>
+          <button id="test-clear" type="button" class="text-button">Delete all votes</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== About ========== -->
+    <section data-view="about" class="page about" hidden>
+      <div class="page-head">
+        <p class="kicker">About Next Read</p>
+        <h2 class="page-title">How it works</h2>
+        <p class="page-sub">Made by Anna Wang to help kids find their next favorite book.</p>
+      </div>
+
+      <div class="about-grid">
+        <section class="panel">
+          <h3 class="sub-title">📚 Two ways to pick books</h3>
+          <p><strong>Matching tags:</strong> every book on Open Library has subject tags like "dragons" or "friendship". Next Read finds popular books that share the most specific tags with yours.</p>
+          <p><strong>✨ AI, similar meaning:</strong> a small AI model (all-MiniLM-L6-v2) reads each book's description and turns it into 384 numbers that capture what it's about. Books with similar numbers have similar meaning, even if their tags are different.</p>
+          <div class="method-compare" aria-hidden="true">
+            <div class="mc-card">
+              <div class="mc-title">📚 Tags</div>
+              <div class="mc-chips"><span>pigs</span><span>spiders</span><span>friendship</span></div>
+              <div class="mc-caption">Same tags = similar book</div>
+            </div>
+            <div class="mc-vs">vs</div>
+            <div class="mc-card">
+              <div class="mc-title">✨ AI</div>
+              <svg class="mc-dots" viewBox="0 0 120 56">
+                <circle cx="16" cy="40" r="4" /><circle cx="34" cy="14" r="4" /><circle cx="100" cy="44" r="4" />
+                <circle cx="88" cy="10" r="4" /><circle cx="56" cy="46" r="4" />
+                <circle class="hit" cx="62" cy="22" r="6" /><circle class="hit" cx="74" cy="28" r="6" />
+                <path d="M62 22 74 28" />
+              </svg>
+              <div class="mc-caption">Close meaning = similar book</div>
+            </div>
+          </div>
+          <p>Which one is better? That's what the <a href="#test">blind test</a> is for.</p>
+        </section>
+
+        <section class="panel">
+          <h3 class="sub-title">🛡️ Safe for kids</h3>
+          <p>Next Read works out who a book is for from its tags, its reading level ("Grade 4", "Ages 8-12"), its page count, and the author's other books.</p>
+          <ul class="check-list">
+            <li>Picture books only get picture books. Children's books only get children's books.</li>
+            <li>Murder, horror and grown-up topics are blocked for kids. Scary books only appear if your own book is scary (Goosebumps readers can get spooky kids' books, never Stephen King).</li>
+            <li>The AI only re-orders books that already passed these checks, so it can't bring adult books back.</li>
+            <li>Tested: an <a href="#test">automatic safety check</a> runs 18 kids' books. Without the filter, 132 of 205 picks had problems. With it: 0.</li>
+          </ul>
+        </section>
+
+        <section class="panel">
+          <h3 class="sub-title">🐛 The bug I fixed</h3>
+          <p>Kids who read <em>Encyclopedia Brown</em> were getting <em>Murder on the Orient Express</em>. Why? Lots of adult books have one kids' edition, so Open Library tags them "juvenile". Next Read saw that one tag and thought they were kids' books.</p>
+          <div class="bug-visual">
+            <figure><img src="https://covers.openlibrary.org/b/id/3369815-M.jpg" alt="Encyclopedia Brown, Boy Detective" loading="lazy" /><figcaption>A kid read this…</figcaption></figure>
+            <span class="bug-arrow" aria-hidden="true">→</span>
+            <figure class="bug-wrong"><img src="https://covers.openlibrary.org/b/id/11100465-M.jpg" alt="Murder on the Orient Express" loading="lazy" /><figcaption>Before: a murder mystery for adults</figcaption></figure>
+            <figure class="bug-right"><img src="https://covers.openlibrary.org/b/id/15150724-M.jpg" alt="Nancy Drew: The Secret of the Old Clock" loading="lazy" /><figcaption>After: Nancy Drew</figcaption></figure>
+          </div>
+          <p>The fix: a book only counts as a kids' book if it has <em>several</em> kids' tags (real kids' books have lots, adult books have one or two), plus reading-level and topic checks. Now <em>Encyclopedia Brown</em> gets Nancy Drew, the Hardy Boys and Enola Holmes.</p>
+        </section>
+
+        <section class="panel">
+          <h3 class="sub-title">🔒 Private by design</h3>
+          <ul class="check-list">
+            <li>No accounts and no sign-in. No names needed.</li>
+            <li>Your book log, reading time, pet and blind-test votes stay in your own browser. They're never uploaded.</li>
+            <li>The AI runs on your device. Book descriptions are never sent to an AI company.</li>
+            <li>The only things that leave your device: book searches to Open Library (a free library catalog), and a one-time download of the AI model from Hugging Face.</li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="panel changelog">
+        <h3 class="sub-title">📅 What's changed</h3>
+        <ol class="change-list timeline">
+          <li><time datetime="2026-11-11">Nov 11, 2026</time> Double-check and polish: safer age check when the internet is slow, backups that include your pet and test results, safer spreadsheet downloads, a mystery-book card in Surprise me, and tidier phone and dark-mode layouts.</li>
+          <li><time datetime="2026-11-11">Nov 11, 2026</time> Bug fixes: a slow book or search can't replace a newer one; the blind test waits for both new lists, so votes are saved for the right book; reading that crosses midnight counts for the right day; the timer pauses itself after 2 hours; you can delete a reading session; and the AI retries book descriptions that failed to load.</li>
+          <li><time datetime="2026-11-11">Nov 11, 2026</time> Added "Surprise me": pick your age (and a kind of book, if you like) and get a random, age-appropriate book.</li>
+          <li><time datetime="2026-11-11">Nov 11, 2026</time> Added an automatic safety check on the Testing page. With no age filter, 132 of 205 picks for 18 kids' books had problems. With the filter, 0 (tags and AI).</li>
+          <li><time datetime="2026-11-11">Nov 11, 2026</time> New designs for the blind test (A and B stamps, a vote bar that stays on screen, a results chart) and this About page (pictures, checklists and this timeline). A shorter top bar on phones.</li>
+          <li><time datetime="2026-11-10">Nov 10, 2026</time> Added the AI recommender, which runs in the browser, and a blind test to compare it with tag matching. Added this About page. You can now choose your reading pet: a dragon, kitty, bunny, owl or fox.</li>
+          <li><time datetime="2026-11-09">Nov 9, 2026</time> Added a reading pet that hatches from an egg and grows as you read. New hand-drawn pictures. Fixed a search bug where "Wonder" found <em>The Wonderful Wizard of Oz</em>.</li>
+          <li><time datetime="2026-11-08">Nov 8, 2026</time> <strong>Bug fix:</strong> kids reading <em>Encyclopedia Brown</em> were getting <em>Murder on the Orient Express</em>. Added stricter kids' book checks, reading levels, a teen level, and blocks on murder, horror and grown-up topics for kids.</li>
+          <li><time datetime="2026-11-08">Nov 8, 2026</time> First version: book recommendations from Open Library, picture-book detection, a reading timer, a book log with badges, and backups.</li>
+        </ol>
+      </section>
+    </section>
   </main>
 
   <div id="toast" class="toast" role="status" hidden></div>
+
+  <!-- Prize screen, shown after saving reading time -->
+  <div id="prize" class="prize-overlay" hidden>
+    <div class="prize-card" role="dialog" aria-modal="true" aria-labelledby="prize-title">
+      <p class="kicker">Prize time!</p>
+      <h2 id="prize-title" class="prize-title">You earned a prize!</h2>
+      <div id="prize-art" class="prize-art"></div>
+      <p id="prize-treats" class="prize-treats"></p>
+      <p id="prize-message" class="prize-message"></p>
+      <div id="prize-progress" class="pet-progress"><span></span></div>
+      <p id="prize-next" class="pet-next"></p>
+      <button id="prize-close" type="button" class="big-button">Yay!</button>
+    </div>
+  </div>
 
   <footer>
     Book data from <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a>
   </footer>
 
-  <script src="app.js?v=4"></script>
-  <script src="reading.js?v=4"></script>
+  <script src="app.js?v=10"></script>
+  <script src="reading.js?v=11"></script>
+  <script src="pet.js?v=11"></script>
+  <script src="ai.js?v=3"></script>
+  <script src="blindtest.js?v=3"></script>
+  <script src="safetycheck.js?v=1"></script>
+  <script src="random.js?v=4"></script>
 </body>
 </html>

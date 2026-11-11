@@ -395,3 +395,103 @@ footer { font-family: var(--serif); font-size: 1.15rem; }
 @media (prefers-reduced-motion: reduce) {
   .card .cover { transition: none; }
 }
+
+/* Reading pet: a taped-in notebook page, like the timer card */
+.pet-panel {
+  position: relative; border: 0; border-radius: 3px;
+  background: repeating-linear-gradient(transparent 0 27px, var(--rule) 27px 28px), var(--card);
+  transform: rotate(-0.5deg);
+}
+.pet-panel::before {
+  content: ""; position: absolute; z-index: 3; top: -11px; left: 40%;
+  width: 96px; height: 24px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 4px, transparent 4px 9px), var(--tape-1);
+  transform: rotate(2deg);
+  clip-path: polygon(3% 0, 97% 4%, 100% 30%, 96% 55%, 100% 80%, 97% 100%, 2% 96%, 0 70%, 4% 45%, 0 18%);
+}
+.pet-name { font-weight: 700; font-size: 2.6rem; }
+.pet-stage { font-family: var(--serif); font-size: 1.4rem; }
+.pet-treats { font-family: var(--type); }
+.pet-mood { font-family: var(--serif); font-size: 1.3rem; }
+.pet-picker-title { font-weight: 700; font-size: 2.6rem; }
+.pet-choice { border: 2px solid var(--ink); border-radius: var(--wobbly); background: var(--card); box-shadow: 2px 3px 0 var(--ink); }
+.pet-choice:nth-child(odd) { transform: rotate(-1.2deg); }
+.pet-choice:nth-child(even) { transform: rotate(1deg); }
+.pet-choice:hover, .pet-choice:focus-visible { transform: translateY(-4px) rotate(0); background: var(--note-yellow); border-color: var(--ink); }
+.pet-choice.current { background: var(--note-green); }
+.pet-choice-name { font-size: 1.6rem; }
+.pet-choice-blurb { font-family: var(--sans); font-size: 0.85rem; }
+.prize-card { border-radius: var(--wobbly); }
+.prize-title { font-weight: 700; font-size: 2.8rem; }
+
+/* ---------- Blind test, results and About in the notebook look ---------- */
+.bt-list {
+  border: 0; border-radius: 3px;
+  background: repeating-linear-gradient(transparent 0 27px, var(--rule) 27px 28px), var(--card);
+}
+#bt-box-a { transform: rotate(-0.6deg); }
+#bt-box-b { transform: rotate(0.5deg); }
+#bt-box-a.picked, #bt-box-b.picked { transform: translateY(-4px) rotate(0deg); }
+.bt-list-title { font-weight: 700; font-size: 2.2rem; }
+.bt-method { font-family: var(--type); }
+.bt-votes, .vote-btn, .seg { border-radius: var(--wobbly); }
+.seg-btn { font-family: var(--sans); font-size: 1.05rem; border-radius: var(--wobbly-2); }
+.vote-btn { font-family: var(--sans); font-size: 1.1rem; font-weight: 400; }
+.bt-votes-label, .method-label { font-family: var(--serif); font-size: 1.35rem; font-weight: 700; }
+.bt-reveal { font-family: var(--sans); }
+.steps li { background: var(--note-yellow); border-radius: 1px 1px 14px 1px / 1px 1px 8px 1px; box-shadow: 0 1px 1px rgba(0,0,0,.1), 3px 6px 10px -6px rgba(60, 40, 20, 0.5); }
+.steps li:nth-child(2) { background: var(--note-pink); transform: rotate(1deg); }
+.steps li:nth-child(3) { background: var(--note-blue); transform: rotate(-0.8deg); }
+.steps li:nth-child(4) { background: var(--note-green); transform: rotate(0.6deg); }
+.steps li:nth-child(1) { transform: rotate(-1deg); }
+.bar-label { font-family: var(--serif); font-size: 1.3rem; }
+.bar-track, .bar-fill { border-radius: var(--wobbly); }
+.mc-card { background: var(--note-yellow); border-radius: 2px; transform: rotate(-1deg); }
+.mc-card + .mc-vs + .mc-card { background: var(--note-blue); transform: rotate(1deg); }
+.mc-title { font-family: var(--serif); font-size: 1.4rem; }
+.mc-caption, .bug-visual figcaption { font-family: var(--serif); font-size: 1.05rem; }
+.timeline time { font-family: var(--type); font-weight: 400; }
+
+/* Text sits on the notebook lines: the lines are 28px apart, so the text is too */
+.about .panel p, .about .panel li, .test-how li, .change-list li { line-height: 28px; }
+.about .panel p { margin-top: 0; margin-bottom: 0; }
+.about .panel p + p, .about .panel .method-compare + p, .about .panel .bug-visual + p { margin-top: 14px; }
+.test-part { font-weight: 700; font-size: 2.3rem; }
+.safety-check { padding-left: 54px; }
+
+/* Surprise me: a taped notebook page with a polaroid cover */
+.surprise-card {
+  border: 0; border-radius: 3px; padding-left: 54px; position: relative;
+  background:
+    linear-gradient(90deg, transparent 38px, var(--margin) 38px, var(--margin) 40px, transparent 40px),
+    repeating-linear-gradient(transparent 0 27px, var(--rule) 27px 28px), var(--card);
+}
+.surprise-card::before {
+  content: ""; position: absolute; z-index: 3; top: -11px; left: 50%;
+  width: 96px; height: 24px; margin-left: -48px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 4px, transparent 4px 9px), var(--tape-3);
+  transform: rotate(-3deg);
+  clip-path: polygon(3% 0, 97% 4%, 100% 30%, 96% 55%, 100% 80%, 97% 100%, 2% 96%, 0 70%, 4% 45%, 0 18%);
+}
+.surprise-cover-wrap .cover {
+  padding: 8px 8px 28px; background: #fffefa; border-radius: 2px; aspect-ratio: 2 / 3.35;
+  box-shadow: var(--shadow); transform: rotate(-2.5deg);
+}
+.surprise-cover-wrap .cover::after { display: none; }
+.surprise-cover-wrap .no-cover { inset: 8px 8px 28px; }
+.surprise-label { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; color: var(--ink); }
+.surprise-title { font-weight: 700; font-size: clamp(2rem, 4vw, 2.8rem); }
+.surprise-for { font-family: var(--type); font-weight: 400; }
+.surprise-desc { font-family: var(--sans); }
+@media (max-width: 600px) { .surprise-card { padding-left: 46px; } }
+
+/* Polish (Nov 11): the mystery card is a polaroid too */
+.surprise-cover-wrap .mystery-cover {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 10px, transparent 10px 20px) content-box,
+    linear-gradient(160deg, var(--accent), var(--accent-dark)) content-box,
+    #fffefa;
+}
+@media (prefers-color-scheme: dark) {
+  .chip[aria-pressed="true"], .seg-btn[aria-pressed="true"] { color: #2a1a12; }
+}
